@@ -27,7 +27,6 @@ export default async function HomePage() {
     .gte('starts_at', oneHourAgo)
     .neq('status', 'closed')
     .order('starts_at')
-    .limit(5)
 
   // Mi asistencia registrada en esos eventos
   const eventIds = upcomingEvents?.map(e => e.id) ?? []
