@@ -1,0 +1,141 @@
+import { createClient } from '@/lib/supabase/server'
+import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG } from '@/lib/utils'
+import CheckInButton from '@/components/member/CheckInButton'
+import type { SectionName, EventWithType, AttendanceStatus } from '@/lib/supabase/types'
+
+export default async function HomePage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user!.id)
+    .single()
+
+  const now = new Date().toISOString()
+
+  // Próximos eventos (los que aplican a este miembro)
+  const { data: upcomingEvents } = await supabase
+    .from('events')
+    .select('*, event_types(*)')
+    .gte('starts_at', now)
+    .neq('status', 'closed')
+    .order('starts_at')
+    .limit(5)
+
+  // Mi asistencia registrada en esos eventos
+  const eventIds = upcomingEvents?.map(e => e.id) ?? []
+  const { data: myAttendances } = await supabase
+    .from('attendances')
+    .select('*')
+    .eq('user_id', user!.id)
+    .in('event_id', eventIds)
+
+  // Mis multas totales
+  const { data: fineData } = await supabase
+    .from('attendances')
+    .select('fine_amount')
+    .eq('user_id', user!.id)
+    .gt('fine_amount', 0)
+
+  const totalFines = fineData?.reduce((sum, a) => sum + a.fine_amount, 0) ?? 0
+
+  // Determinar si el evento aplica a este miembro
+  function appliesToMe(event: EventWithType): boolean {
+    if (!event.target_sections || event.target_sections.length === 0) return true
+    return event.target_sections.includes(profile?.section as SectionName)
+  }
+
+  return (
+    <div className="p-4 space-y-6 max-w-lg mx-auto">
+      {/* Header */}
+      <div className="pt-6 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-500">Hola,</p>
+          <h1 className="text-2xl font-bold text-gray-900">{profile?.full_name?.split(' ')[0]}</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {profile?.section ? SECTION_LABELS[profile.section as SectionName] : 'Sin sección'}
+            {profile?.instrument ? ` · ${profile.instrument}` : ''}
+          </p>
+        </div>
+        {profile?.photo_url && (
+          <img src={profile.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+        )}
+      </div>
+
+      {/* Multas pendientes */}
+      {totalFines > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-red-500 font-medium">Multas acumuladas</p>
+            <p className="text-xl font-bold text-red-700">{formatCurrency(totalFines)}</p>
+          </div>
+          <a href="/mis-multas" className="text-sm text-red-600 underline">Ver detalle</a>
+        </div>
+      )}
+
+      {/* Próximos eventos */}
+      <section>
+        <h2 className="font-semibold text-gray-900 mb-3">Próximos eventos</h2>
+        <div className="space-y-3">
+          {upcomingEvents && upcomingEvents.length > 0 ? upcomingEvents.map((event: any) => {
+            const applies = appliesToMe(event)
+            const myAttendance = myAttendances?.find(a => a.event_id === event.id)
+            const nowDate = new Date()
+            const opensAt = new Date(event.checkin_opens_at)
+            const startsAt = new Date(event.starts_at)
+            const isOpen = event.status === 'open' || (nowDate >= opensAt && nowDate <= startsAt && event.status === 'scheduled')
+
+            return (
+              <div key={event.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-900">{event.title}</p>
+                    <p className="text-sm text-gray-500">
+                      {event.event_types?.name} · {formatDateTime(event.starts_at)}
+                    </p>
+                  </div>
+                  {myAttendance && (
+                    <StatusPill status={myAttendance.status as AttendanceStatus} />
+                  )}
+                </div>
+
+                {!applies && (
+                  <p className="text-xs bg-gray-100 text-gray-500 rounded-lg px-3 py-2 text-center">
+                    No aplica para tu sección
+                  </p>
+                )}
+
+                {applies && !myAttendance && (
+                  <CheckInButton
+                    eventId={event.id}
+                    isOpen={isOpen}
+                    opensAt={event.checkin_opens_at}
+                  />
+                )}
+
+                {applies && myAttendance && (
+                  <p className="text-xs text-gray-400 text-center">Asistencia ya registrada</p>
+                )}
+              </div>
+            )
+          }) : (
+            <div className="bg-white rounded-xl p-8 text-center text-gray-400 border border-dashed border-gray-200">
+              No hay eventos próximos
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function StatusPill({ status }: { status: AttendanceStatus }) {
+  const { label, color, bg } = STATUS_CONFIG[status]
+  return (
+    <span className={`text-xs font-medium px-2 py-1 rounded-full ${bg} ${color}`}>
+      {label}
+    </span>
+  )
+}
