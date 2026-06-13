@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG } from '@/lib/utils'
+import { autoCloseExpiredEvents } from '@/lib/actions/events'
 import CheckInButton from '@/components/member/CheckInButton'
 import type { SectionName, EventWithType, AttendanceStatus } from '@/lib/supabase/types'
 
 export default async function HomePage() {
+  // Cerrar automáticamente eventos vencidos antes de cargar la página
+  await autoCloseExpiredEvents()
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -13,13 +17,14 @@ export default async function HomePage() {
     .eq('id', user!.id)
     .single()
 
-  const now = new Date().toISOString()
+  const now = new Date()
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
 
-  // Próximos eventos (los que aplican a este miembro)
+  // Próximos eventos: incluir los que empezaron hace menos de 1 hora (ventana de check-in activa)
   const { data: upcomingEvents } = await supabase
     .from('events')
     .select('*, event_types(*)')
-    .gte('starts_at', now)
+    .gte('starts_at', oneHourAgo)
     .neq('status', 'closed')
     .order('starts_at')
     .limit(5)
@@ -84,8 +89,9 @@ export default async function HomePage() {
             const myAttendance = myAttendances?.find(a => a.event_id === event.id)
             const nowDate = new Date()
             const opensAt = new Date(event.checkin_opens_at)
-            const startsAt = new Date(event.starts_at)
-            const isOpen = event.status === 'open' || (nowDate >= opensAt && nowDate <= startsAt && event.status === 'scheduled')
+            const closesAt = new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000)
+            // Check-in abierto automáticamente: desde la ventana hasta 1 hora después del inicio
+            const isOpen = nowDate >= opensAt && nowDate <= closesAt
 
             return (
               <div key={event.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">

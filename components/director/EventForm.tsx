@@ -15,8 +15,11 @@ export default function EventForm({ eventTypes }: { eventTypes: EventType[] }) {
 
   const [title, setTitle] = useState('')
   const [eventTypeId, setEventTypeId] = useState(eventTypes[0]?.id ?? '')
-  const [startsAt, setStartsAt] = useState('')
-  const [checkinWindowMin, setCheckinWindowMin] = useState(60)
+  const [startsAt, setStartsAt] = useState(() => {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+    return now.toISOString().slice(0, 16)
+  })
   const [notes, setNotes] = useState('')
   const [targetSections, setTargetSections] = useState<SectionName[]>([]) // vacío = todos
 
@@ -39,7 +42,7 @@ export default function EventForm({ eventTypes }: { eventTypes: EventType[] }) {
       title,
       event_type_id: eventTypeId,
       starts_at: new Date(startsAt).toISOString(),
-      checkin_window_min: checkinWindowMin,
+      checkin_window_min: 60,
       target_sections: targetSections.length > 0 ? targetSections : null,
       notes: notes || null,
       created_by: user.id,
@@ -88,21 +91,6 @@ export default function EventForm({ eventTypes }: { eventTypes: EventType[] }) {
           onChange={e => setStartsAt(e.target.value)}
           className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
-      </Field>
-
-      <Field label={`Ventana de check-in: ${checkinWindowMin} min antes`}>
-        <input
-          type="range"
-          min={15}
-          max={120}
-          step={15}
-          value={checkinWindowMin}
-          onChange={e => setCheckinWindowMin(Number(e.target.value))}
-          className="w-full accent-violet-600"
-        />
-        <div className="flex justify-between text-xs text-gray-400">
-          <span>15 min</span><span>2 h</span>
-        </div>
       </Field>
 
       <Field label="Secciones (vacío = todos los miembros)">

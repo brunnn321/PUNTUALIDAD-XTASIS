@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { autoCloseExpiredEvents } from '@/lib/actions/events'
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
 import { Plus, ChevronRight } from 'lucide-react'
@@ -10,6 +11,8 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 }
 
 export default async function EventosPage() {
+  await autoCloseExpiredEvents()
+
   const supabase = await createClient()
 
   const { data: events } = await supabase
