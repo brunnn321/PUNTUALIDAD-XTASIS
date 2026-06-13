@@ -8,8 +8,18 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient()
+  const now = new Date().toISOString()
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
 
+  // Auto-abrir eventos cuya ventana de check-in ya comenzó
+  await supabase
+    .from('events')
+    .update({ status: 'open' })
+    .eq('status', 'scheduled')
+    .lte('checkin_opens_at', now)
+    .gte('starts_at', oneHourAgo)
+
+  // Auto-cerrar eventos expirados
   const { data: expired } = await supabase
     .from('events')
     .select('id, title')
@@ -17,7 +27,7 @@ export async function GET(request: Request) {
     .lt('starts_at', oneHourAgo)
 
   if (!expired || expired.length === 0) {
-    return NextResponse.json({ closed: 0 })
+    return NextResponse.json({ opened: 0, closed: 0 })
   }
 
   for (const event of expired) {

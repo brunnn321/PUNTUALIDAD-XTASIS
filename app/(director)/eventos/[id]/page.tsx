@@ -50,7 +50,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Controles del director */}
-      <EventControls eventId={event.id} status={event.status} />
+      <EventControls
+        eventId={event.id}
+        status={event.status}
+        checkinOpensAt={event.checkin_opens_at}
+        startsAt={event.starts_at}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-2">
