@@ -12,20 +12,20 @@ RETURNS BOOLEAN AS $$
     SELECT 1 FROM profiles
     WHERE id = auth.uid() AND role = 'director'
   );
-$$ LANGUAGE sql SECURITY DEFINER;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
 
 -- Función auxiliar: sección del usuario autenticado
 CREATE OR REPLACE FUNCTION my_section()
 RETURNS section_name AS $$
   SELECT section FROM profiles WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
 
 -- ===================== PROFILES =====================
 -- Lectura: director ve todos; miembro solo se ve a sí mismo
 CREATE POLICY "profiles_select" ON profiles FOR SELECT
   USING (auth.uid() = id OR is_director());
 
--- Inserción: el trigger de auth lo maneja (service role)
+-- Inserción: el trigger de auth lo maneja con SECURITY DEFINER + search_path
 CREATE POLICY "profiles_insert" ON profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
