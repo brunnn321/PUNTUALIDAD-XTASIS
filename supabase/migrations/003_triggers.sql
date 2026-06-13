@@ -16,8 +16,10 @@ CREATE TRIGGER events_checkin_opens_at
 -- =========================================================
 -- Trigger 1: Crear perfil automáticamente al registrarse
 -- =========================================================
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
 BEGIN
   INSERT INTO profiles (id, full_name, photo_url)
   VALUES (
@@ -27,7 +29,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
