@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG } from '@/lib/utils'
+import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG, EVENT_STATUS_CONFIG } from '@/lib/utils'
 import { autoCloseExpiredEvents } from '@/lib/actions/events'
 import CheckInButton from '@/components/member/CheckInButton'
 import type { SectionName, EventWithType, AttendanceStatus } from '@/lib/supabase/types'
@@ -95,17 +95,25 @@ export default async function HomePage() {
 
             return (
               <div key={event.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
                     <p className="font-semibold text-gray-900">{event.title}</p>
                     <p className="text-sm text-gray-500">
                       {event.event_types?.name} · {formatDateTime(event.starts_at)}
                     </p>
                   </div>
-                  {myAttendance && (
-                    <StatusPill status={myAttendance.status as AttendanceStatus} />
-                  )}
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <EventStatusPill status={event.status} />
+                    {myAttendance && (
+                      <StatusPill status={myAttendance.status as AttendanceStatus} />
+                    )}
+                  </div>
                 </div>
+                {event.notes && (
+                  <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                    📝 {event.notes}
+                  </p>
+                )}
 
                 {!applies && (
                   <p className="text-xs bg-gray-100 text-gray-500 rounded-lg px-3 py-2 text-center">
@@ -142,6 +150,17 @@ function StatusPill({ status }: { status: AttendanceStatus }) {
   return (
     <span className={`text-xs font-medium px-2 py-1 rounded-full ${bg} ${color}`}>
       {label}
+    </span>
+  )
+}
+
+function EventStatusPill({ status }: { status: string }) {
+  const cfg = EVENT_STATUS_CONFIG[status as keyof typeof EVENT_STATUS_CONFIG]
+  if (!cfg) return null
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
     </span>
   )
 }

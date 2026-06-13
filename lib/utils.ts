@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { AttendanceStatus, SectionName } from './supabase/types'
+import type { AttendanceStatus, EventStatus, SectionName } from './supabase/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -41,4 +41,10 @@ export const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: str
   present: { label: 'Presente',  color: 'text-green-700',  bg: 'bg-green-100' },
   late:    { label: 'Tardanza',  color: 'text-amber-700',  bg: 'bg-amber-100' },
   absent:  { label: 'Falta',     color: 'text-red-700',    bg: 'bg-red-100'   },
+}
+
+export const EVENT_STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: string; dot: string }> = {
+  scheduled: { label: 'Programado', color: 'text-gray-600',  bg: 'bg-gray-100',   dot: 'bg-gray-400'   },
+  open:      { label: 'Abierto',    color: 'text-green-700', bg: 'bg-green-100',  dot: 'bg-green-500'  },
+  closed:    { label: 'Cerrado',    color: 'text-red-600',   bg: 'bg-red-100',    dot: 'bg-red-400'    },
 }

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, formatDateTime, formatCurrency, STATUS_CONFIG } from '@/lib/utils'
-import type { AttendanceStatus } from '@/lib/supabase/types'
+import { formatDate, formatDateTime, formatCurrency, STATUS_CONFIG, EVENT_STATUS_CONFIG } from '@/lib/utils'
+import type { AttendanceStatus, EventStatus } from '@/lib/supabase/types'
 
 export default async function MisEventosPage() {
   const supabase = await createClient()
@@ -46,19 +46,29 @@ export default async function MisEventosPage() {
               const { label, color, bg } = STATUS_CONFIG[att.status as AttendanceStatus]
               const event = att.events
               return (
-                <div key={att.id} className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm border border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{event?.title}</p>
-                    <p className="text-xs text-gray-400">
-                      {event?.event_types?.name} · {event?.starts_at ? formatDateTime(event.starts_at) : ''}
+                <div key={att.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 text-sm">{event?.title}</p>
+                      <p className="text-xs text-gray-400">
+                        {event?.event_types?.name} · {event?.starts_at ? formatDateTime(event.starts_at) : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {event?.status && (
+                        <EventStatusPill status={event.status as EventStatus} />
+                      )}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${bg} ${color}`}>{label}</span>
+                      {att.fine_amount > 0 && (
+                        <p className="text-xs text-red-500">{formatCurrency(att.fine_amount)}</p>
+                      )}
+                    </div>
+                  </div>
+                  {event?.notes && (
+                    <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                      📝 {event.notes}
                     </p>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-3">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${bg} ${color}`}>{label}</span>
-                    {att.fine_amount > 0 && (
-                      <p className="text-xs text-red-500 mt-1">{formatCurrency(att.fine_amount)}</p>
-                    )}
-                  </div>
+                  )}
                 </div>
               )
             })}
@@ -70,5 +80,15 @@ export default async function MisEventosPage() {
         )}
       </section>
     </div>
+  )
+}
+
+function EventStatusPill({ status }: { status: EventStatus }) {
+  const cfg = EVENT_STATUS_CONFIG[status]
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
   )
 }
