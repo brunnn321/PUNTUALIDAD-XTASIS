@@ -26,7 +26,7 @@ export default async function HomePage() {
     .select('*, event_types(*)')
     .gte('starts_at', oneHourAgo)
     .neq('status', 'closed')
-    .order('starts_at')
+    .order('starts_at', { ascending: false })
 
   // Mi asistencia registrada en esos eventos
   const eventIds = upcomingEvents?.map(e => e.id) ?? []

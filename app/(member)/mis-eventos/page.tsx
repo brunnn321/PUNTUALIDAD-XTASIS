@@ -10,7 +10,7 @@ export default async function MisEventosPage() {
     .from('attendances')
     .select('*, events(*, event_types(name))')
     .eq('user_id', user!.id)
-    .order('created_at', { ascending: false })
+    .order('events(starts_at)', { ascending: false })
 
   const present = attendances?.filter(a => a.status === 'present').length ?? 0
   const late = attendances?.filter(a => a.status === 'late').length ?? 0
