@@ -72,20 +72,33 @@ Cuando un evento es seccional (solo para "Vientos", por ejemplo):
 
 ---
 
+## Lógica de asistencia (detalle)
+
+| Momento del check-in | Estado registrado | Multa |
+|---|---|---|
+| Antes de la hora de inicio (tolerancia < 1 min) | `present` (Presente) | Sin multa |
+| 1 a 15 minutos tarde | `late` (Tardanza) | Multa por tardanza |
+| Más de 15 minutos tarde | `absent` (Falta) | Multa por falta |
+| No marcó (al cerrar evento) | `absent` (Falta automática) | Multa por falta |
+
+El cálculo lo realiza el trigger `calculate_fine` en PostgreSQL mediante la función `resolve_attendance_status()`.
+
+---
+
 ## Fases de implementación
 
-| Fase | Descripción | Duración estimada |
+| Fase | Descripción | Estado |
 |---|---|---|
-| **Fase 1** | Setup + estructura base + check-in + vista de asistencia | ~2 semanas |
-| **Fase 2** | Multas automáticas + reportes completos + ranking | ~1 semana |
-| **Fase 3** | Notificaciones push + email + cron de cierre automático | ~1 semana |
+| **Fase 1** | Setup + estructura base + check-in + vista de asistencia | ✅ Completada |
+| **Fase 2** | Multas + reportes + ranking + calendario + multi-selección + fotos | ✅ Completada |
+| **Fase 3** | Notificaciones push + email + cron de cierre automático | ⏳ Pendiente |
 
 ---
 
 ## Para activar la app (pasos de configuración)
 
 1. Crear un proyecto en [supabase.com](https://supabase.com)
-2. Ejecutar los 3 archivos SQL de `supabase/migrations/` en el editor SQL de Supabase
+2. Ejecutar los 10 archivos SQL de `supabase/migrations/` en el editor SQL de Supabase (en orden)
 3. Activar Google OAuth en Supabase → Authentication → Providers
 4. Copiar `.env.local.example` a `.env.local` y completar las variables
 5. Asignar `role = 'director'` al primer usuario en la tabla `profiles`

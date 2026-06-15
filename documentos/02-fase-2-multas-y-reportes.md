@@ -1,86 +1,136 @@
-# Fase 2 — Multas y Reportes
+# Fase 2 — Multas, Reportes y Mejoras de UX
 
-**Estado:** Pendiente  
-**Duración estimada:** ~1 semana
+**Estado:** Completada  
+**Fecha:** 15 de junio de 2026
 
 ---
 
 ## Objetivo
 
-Completar el sistema de multas automáticas y construir todos los reportes del director con datos reales.
+Completar el sistema de multas, construir reportes completos y agregar funcionalidades de gestión avanzada para el director y los miembros.
 
 ---
 
-## Lo que se construirá
+## Lo que se construyó
 
-### 1. Cierre automático de eventos (Vercel Cron)
+### 1. Multas agrupadas por evento
 
-Actualmente el director cierra los eventos manualmente con el botón "Cerrar y registrar ausentes". La Fase 2 agrega un cron job que lo hace automáticamente.
+**Ruta:** `/reportes/multas`  
+**Archivo:** `app/(director)/reportes/multas/page.tsx`
 
-**Archivo a crear:** `app/api/cron/close-events/route.ts`
+Las multas pendientes se muestran agrupadas por evento (en lugar de por miembro). Cada evento es un bloque `<details>` expandible que muestra nombre, fecha, tipo y al expandir la lista de miembros deudores con su monto.
 
-```typescript
-// Lógica: cada 5 minutos revisar si hay eventos cuyo starts_at
-// + 15 minutos de gracia ya pasó y aún están en estado 'open' o 'scheduled'
-// Si los encuentra, llamar a la función close_event() de Supabase
-```
+### 2. Ranking con podio (top 3)
 
-**Configuración en `vercel.json`:**
-```json
-{
-  "crons": [
-    { "path": "/api/cron/close-events", "schedule": "*/5 * * * *" }
-  ]
-}
-```
+**Ruta:** `/reportes`  
+**Archivo:** `app/(director)/reportes/page.tsx`
 
-### 2. Verificación de multas en el trigger
+El ranking de asistencia muestra un podio con 🥇🥈🥉 para los tres primeros. Fondo ámbar para el primero, gris para el segundo, naranja para el tercero. El resto de miembros se muestra en un bloque colapsado "Ver todos". Cada entrada muestra porcentaje, conteo de presentes/tardanzas/faltas y multas.
 
-El trigger `calculate_fine` ya existe en `supabase/migrations/003_triggers.sql`. En la Fase 2 se prueba end-to-end con datos reales:
+### 3. Filtro de período y rango de fechas
 
-- Crear evento → check-in a tiempo → multa = 0 ✓
-- Check-in 10 min tarde → multa = `fine_late` del tipo de evento ✓
-- No marcar → cierre → multa = `fine_absent` ✓
+**Componente:** `components/director/DateRangeFilter.tsx`
 
-### 3. Reportes ampliados
+Nuevo componente cliente reutilizable con:
+- Tres botones pill: "Esta semana", "Este mes", "Todo"
+- Panel "Rango personalizado" con inputs Desde/Hasta (por defecto fecha de hoy)
+- Estado persistido en URL (`?periodo=month` o `?desde=...&hasta=...`)
+- Disponible en `/reportes` y en `/reportes/miembro/[id]` (via prop `basePath`)
 
-Los reportes básicos ya están construidos en la Fase 1. La Fase 2 agrega:
+### 4. Reporte individual de miembro con botón "Saldar"
 
-#### Filtros por período en el ranking
-- Selector de rango de fechas (esta semana / este mes / personalizado)
-- Archivo: `app/(director)/reportes/page.tsx` (ampliar el existente)
+**Ruta:** `/reportes/miembro/[id]`  
+**Archivos:** `app/(director)/reportes/miembro/[id]/page.tsx`, `lib/actions/fines.ts`
 
-#### Reporte de multas por cobrar detallado
-- Vista separada con lista de todos los miembros que tienen multas pendientes
-- Subtotal por miembro
-- Total general del grupo
-- Archivo: `app/(director)/reportes/multas/page.tsx` (nuevo)
+Historial filtrable de cada miembro. Por cada asistencia con multa > 0 aparece el monto y un botón "Saldar" que pone `fine_amount = 0` vía Server Action.
 
-#### Exportar datos
-- Botón para exportar asistencias de un evento en CSV
-- Útil para llevar a Excel o compartir con la directiva
+### 5. Vista calendario de eventos
 
-### 4. Historial de ediciones del director
+**Archivos:** `components/director/EventsCalendarView.tsx`, `components/director/EventsViewToggle.tsx`
 
-Cuando el director edita manualmente una asistencia (campo `edited_by` en la tabla `attendances`), mostrar un indicador visual en el detalle del evento.
+Toggle "Lista | Calendario" en `/eventos`. El calendario muestra un grid mensual con puntos de color por tipo de evento. Colores: Ensayo=azul, Presentación=violeta, Viaje=naranja, Medios=amarillo, Seccional=verde. Navegación entre meses con flechas. Al hacer clic en un día aparece el listado de eventos de ese día.
+
+### 6. Multi-selección de eventos para eliminar
+
+**Archivo:** `components/director/EventsViewToggle.tsx`
+
+Botón "Seleccionar" en la cabecera de `/eventos`. Al activarlo aparecen checkboxes. Una barra inferior muestra el conteo de seleccionados y el botón "Eliminar" con confirmación "Sí / No".
+
+### 7. Desactivar y reactivar miembros
+
+**Archivos:** `components/director/MembersList.tsx`, `lib/actions/members.ts`
+
+El modo selección en `/miembros` cambió de "eliminar" a "desactivar/reactivar". Los miembros desactivados no aparecen en eventos nuevos. En eventos cerrados, aparecen al final con badge "Inactivo".
+
+Server action `setMembersActive(ids, active)` actualiza el campo `profiles.active`.
+
+### 8. Foto de perfil personalizable
+
+**Archivos:** `components/member/ProfileForm.tsx`, `supabase/migrations/010_profile_photos.sql`
+
+Los miembros pueden subir una foto de perfil desde `/perfil`. El avatar muestra un badge de cámara. Al hacer clic se abre el selector de archivos. La foto se sube a `profile-photos/{userId}/avatar.jpg` en Supabase Storage con `upsert: true`. La URL pública se guarda en `profiles.photo_url`.
+
+### 9. Sección e instrumento de solo lectura para miembros
+
+**Archivo:** `components/member/ProfileForm.tsx`
+
+Los campos "sección" e "instrumento" se muestran como texto estático en el formulario del miembro (fondo gris). Solo el director puede modificarlos desde `/miembros/[id]`.
+
+### 10. Vista de eventos del miembro con toggle y secciones
+
+**Archivos:** `app/(member)/mis-eventos/page.tsx`, `components/member/MemberEventsToggle.tsx`
+
+La página `/mis-eventos` se reescribió para mostrar dos secciones: "Próximos" y "Pasados". Incluye el mismo toggle Lista/Calendario que el director. El calendario reutiliza `EventsCalendarView`.
+
+### 11. Confirmación "Sí / No" en acciones destructivas
+
+En lugar de `confirm()` del navegador, las acciones de eliminar y desactivar usan botones "Sí" y "No" inline en la barra de acción inferior.
+
+### 12. Configuración de multas movida a Eventos
+
+La ruta `/configuracion` fue renombrada y movida a `/eventos/multas`. El ítem "Config" fue eliminado de la barra de navegación del director. Ahora se accede desde el ícono de recibo en la cabecera de `/eventos`.
+
+### 13. Foto de check-in obligatoria
+
+**Archivo:** `components/member/CheckInButton.tsx`
+
+El check-in requiere una foto. El componente abre la cámara o galería, muestra preview y sube a Supabase Storage antes de registrar la asistencia.
+
+### 14. Miniatura de foto de check-in con lightbox
+
+**Archivo:** `components/director/AttendancePhoto.tsx`
+
+En el detalle del evento y en el historial del miembro, cada asistencia con foto muestra una miniatura de 40×40px. Al hacer clic se abre un overlay de pantalla completa.
+
+### 15. Tolerancia de 1 minuto para marcar como "presente"
+
+**Archivo:** `supabase/migrations/009_fix_attendance_status_tolerance.sql`
+
+La función `resolve_attendance_status()` fue actualizada: llegar con menos de 1 minuto de diferencia cuenta como "presente".
 
 ---
 
-## Tareas de implementación
+## Tareas completadas
 
-- [ ] Crear `vercel.json` con configuración del cron
-- [ ] Crear `app/api/cron/close-events/route.ts`
-- [ ] Proteger el endpoint del cron con `CRON_SECRET` en headers
-- [ ] Agregar filtros de período a la página de reportes
-- [ ] Crear página `app/(director)/reportes/multas/page.tsx`
-- [ ] Agregar exportación CSV al detalle de eventos
-- [ ] Probar el ciclo completo de multas con datos reales en Supabase
+- [x] Multas agrupadas por evento en `/reportes/multas`
+- [x] Ranking top 3 con podio y emojis de medallas
+- [x] Botón "Saldar multa" en reporte de miembro
+- [x] Componente `DateRangeFilter` reutilizable con URL state
+- [x] Filtro de fechas en `/reportes` y `/reportes/miembro/[id]`
+- [x] Vista calendario de eventos (director y miembro)
+- [x] Multi-selección de eventos para eliminar
+- [x] Multi-selección de miembros para desactivar/reactivar
+- [x] Foto de perfil personalizable para miembros
+- [x] Sección e instrumento de solo lectura en perfil del miembro
+- [x] Toggle "Próximos / Pasados" en `/mis-eventos`
+- [x] Config de multas movida a `/eventos/multas`
+- [x] Foto obligatoria al hacer check-in
+- [x] Miniatura de foto con lightbox en evento y perfil
+- [x] Tolerancia de 1 minuto en `resolve_attendance_status()`
+- [x] Confirmaciones inline "Sí / No" (sin `confirm()`)
 
----
+## Pendiente (postergado para Fase 3 o backlog)
 
-## Variables de entorno adicionales necesarias
-
-```
-CRON_SECRET=un-valor-secreto-largo
-SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key  # para el cron (bypasa RLS)
-```
+- [ ] Cierre automático de eventos (Vercel Cron)
+- [ ] Exportación CSV de asistencias por evento
+- [ ] Historial de ediciones del director (campo `edited_by`)
