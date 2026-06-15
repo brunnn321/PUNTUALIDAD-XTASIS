@@ -49,6 +49,12 @@ export async function deleteMember(id: string) {
   redirect('/miembros')
 }
 
+// Versión sin redirect, para borrar varios en loop desde un componente cliente
+export async function deleteMemberById(id: string) {
+  const supabase = createAdminClient()
+  await supabase.auth.admin.deleteUser(id)
+}
+
 export async function updateMember(_: unknown, formData: FormData) {
   const id = formData.get('id') as string
   const full_name = (formData.get('full_name') as string).trim()

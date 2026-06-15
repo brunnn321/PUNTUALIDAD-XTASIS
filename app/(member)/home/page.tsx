@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG, EVENT_STATUS_CONFIG } from '@/lib/utils'
+import { formatDateTime, formatCurrency, SECTION_LABELS, EVENT_STATUS_CONFIG } from '@/lib/utils'
 import { autoCloseExpiredEvents } from '@/lib/actions/events'
 import CheckInButton from '@/components/member/CheckInButton'
-import type { SectionName, EventWithType, AttendanceStatus } from '@/lib/supabase/types'
+import type { SectionName, EventWithType } from '@/lib/supabase/types'
 
 export default async function HomePage() {
   // Cerrar automáticamente eventos vencidos antes de cargar la página
@@ -101,11 +101,8 @@ export default async function HomePage() {
                       {event.event_types?.name} · {formatDateTime(event.starts_at)}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex-shrink-0">
                     <EventStatusPill status={event.status} />
-                    {myAttendance && (
-                      <StatusPill status={myAttendance.status as AttendanceStatus} />
-                    )}
                   </div>
                 </div>
                 {event.notes && (
@@ -141,15 +138,6 @@ export default async function HomePage() {
         </div>
       </section>
     </div>
-  )
-}
-
-function StatusPill({ status }: { status: AttendanceStatus }) {
-  const { label, color, bg } = STATUS_CONFIG[status]
-  return (
-    <span className={`text-xs font-medium px-2 py-1 rounded-full ${bg} ${color}`}>
-      {label}
-    </span>
   )
 }
 

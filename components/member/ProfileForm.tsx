@@ -1,31 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Profile, SectionName } from '@/lib/supabase/types'
 import { SECTION_LABELS } from '@/lib/utils'
-
-const SECTIONS = Object.entries(SECTION_LABELS) as [SectionName, string][]
+import { Camera } from 'lucide-react'
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
   const [fullName, setFullName] = useState(profile.full_name)
-  const [section, setSection] = useState<SectionName | ''>(profile.section ?? '')
-  const [instrument, setInstrument] = useState(profile.instrument ?? '')
+  const section = profile.section ?? ''
+  const instrument = profile.instrument ?? ''
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
+
+    let photoUrl = profile.photo_url
+
+    if (photoFile) {
+      const path = `${profile.id}/avatar.jpg`
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(path, photoFile, { upsert: true, contentType: photoFile.type })
+
+      if (!uploadError) {
+        const { data } = supabase.storage.from('profile-photos').getPublicUrl(path)
+        // Cachebust para que el navegador no sirva la imagen antigua
+        photoUrl = `${data.publicUrl}?t=${Date.now()}`
+      }
+    }
+
     await supabase
       .from('profiles')
       .update({
         full_name: fullName,
-        section: section || null,
-        instrument: instrument || null,
+        ...(photoUrl !== profile.photo_url ? { photo_url: photoUrl } : {}),
       })
       .eq('id', profile.id)
 
@@ -35,20 +59,41 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
     router.refresh()
   }
 
+  const avatarSrc = photoPreview ?? profile.photo_url
+
   return (
     <div className="space-y-6">
-      {/* Avatar */}
+      {/* Avatar con opción de cambiar */}
       <div className="flex items-center gap-4">
-        {profile.photo_url ? (
-          <img src={profile.photo_url} alt="" className="w-16 h-16 rounded-full object-cover" />
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-2xl font-bold">
-            {profile.full_name?.charAt(0)}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="relative flex-shrink-0 group"
+          title="Cambiar foto de perfil"
+        >
+          {avatarSrc ? (
+            <img src={avatarSrc} alt="" className="w-16 h-16 rounded-full object-cover" />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-2xl font-bold">
+              {profile.full_name?.charAt(0)}
+            </div>
+          )}
+          <span className="absolute bottom-0 right-0 w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center shadow-sm group-hover:bg-violet-700 transition-colors">
+            <Camera size={12} className="text-white" />
+          </span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handlePhotoChange}
+        />
         <div>
           <p className="font-semibold text-gray-900">{profile.full_name}</p>
-          <p className="text-sm text-gray-400">Foto sincronizada con Google</p>
+          <p className="text-sm text-gray-400">
+            {photoPreview ? 'Foto lista para guardar' : 'Toca la foto para cambiarla'}
+          </p>
         </div>
       </div>
 
@@ -65,33 +110,18 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-gray-700">Sección</label>
-          <div className="flex flex-wrap gap-2">
-            {SECTIONS.map(([sec, label]) => (
-              <button
-                key={sec}
-                type="button"
-                onClick={() => setSection(sec)}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  section === sec
-                    ? 'bg-violet-600 text-white border-violet-600'
-                    : 'bg-white text-gray-600 border-gray-300'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <p className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700">
+            {section ? SECTION_LABELS[section as SectionName] : 'Sin sección asignada'}
+          </p>
+          <p className="text-xs text-gray-400">Solo el director puede cambiar tu sección.</p>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-gray-700">Instrumento o rol</label>
-          <input
-            type="text"
-            value={instrument}
-            onChange={e => setInstrument(e.target.value)}
-            placeholder="Ej: Trompeta, Voz principal, Bajo..."
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-          />
+          <p className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700">
+            {instrument || 'Sin instrumento asignado'}
+          </p>
+          <p className="text-xs text-gray-400">Solo el director puede cambiar tu instrumento.</p>
         </div>
 
         <button

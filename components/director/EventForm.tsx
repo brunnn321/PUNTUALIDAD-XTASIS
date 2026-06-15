@@ -8,7 +8,13 @@ import { SECTION_LABELS } from '@/lib/utils'
 
 const SECTIONS = Object.entries(SECTION_LABELS) as [SectionName, string][]
 
-export default function EventForm({ eventTypes }: { eventTypes: EventType[] }) {
+export default function EventForm({
+  eventTypes,
+  initialSections = [],
+}: {
+  eventTypes: EventType[]
+  initialSections?: SectionName[]
+}) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,7 +27,7 @@ export default function EventForm({ eventTypes }: { eventTypes: EventType[] }) {
     return now.toISOString().slice(0, 16)
   })
   const [notes, setNotes] = useState('')
-  const [targetSections, setTargetSections] = useState<SectionName[]>([]) // vacío = todos
+  const [targetSections, setTargetSections] = useState<SectionName[]>(initialSections)
 
   function toggleSection(sec: SectionName) {
     setTargetSections(prev =>

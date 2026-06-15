@@ -2,13 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { formatCurrency, SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
 import Link from 'next/link'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 const PERIODOS = [
   { label: 'Esta semana', value: 'week' },
   { label: 'Este mes',    value: 'month' },
   { label: 'Todo',        value: 'all' },
 ]
+
+const MEDALS = ['🥇', '🥈', '🥉']
 
 function getPeriodStart(period: string): string | null {
   const now = new Date()
@@ -53,7 +54,6 @@ export default async function ReportesPage({
 
   const { data: attendances } = await attendanceQuery
 
-  // Filtrar asistencias que tienen evento dentro del período
   const filtered = attendances?.filter((a: any) => {
     if (!periodStart) return true
     return a.events?.starts_at >= periodStart
@@ -70,8 +70,11 @@ export default async function ReportesPage({
     return { ...m, total, present, late, absent, fines, pct }
   }) ?? []
 
-  const ranked = [...stats].sort((a, b) => b.pct - a.pct)
+  const ranked = [...stats].sort((a, b) => b.pct - a.pct || b.present - a.present)
   const totalFines = filtered.reduce((sum: number, a: any) => sum + a.fine_amount, 0)
+
+  const top3 = ranked.slice(0, 3)
+  const rest = ranked.slice(3)
 
   return (
     <div className="p-4 space-y-5 max-w-lg mx-auto">
@@ -105,18 +108,71 @@ export default async function ReportesPage({
         <p className="text-3xl font-bold text-red-700">{formatCurrency(totalFines)}</p>
       </div>
 
-      {/* Ranking */}
+      {/* Podio — top 3 */}
       <section>
         <h2 className="font-semibold text-gray-900 mb-3">Ranking de asistencia</h2>
-        {ranked.length > 0 ? (
+        {top3.length > 0 ? (
           <div className="space-y-2">
-            {ranked.map((m, i) => (
+            {top3.map((m, i) => (
+              <Link
+                key={m.id}
+                href={`/reportes/miembro/${m.id}`}
+                className={`flex items-center gap-3 rounded-xl p-3 shadow-sm border ${
+                  i === 0 ? 'bg-amber-50 border-amber-200' :
+                  i === 1 ? 'bg-gray-50 border-gray-200' :
+                             'bg-orange-50 border-orange-200'
+                }`}
+              >
+                <span className="text-2xl w-8 text-center">{MEDALS[i]}</span>
+                {m.photo_url ? (
+                  <img src={m.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm">
+                    {m.full_name?.charAt(0)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm truncate">{m.full_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {m.section ? SECTION_LABELS[m.section as SectionName] : 'Sin sección'}
+                  </p>
+                  {m.total > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {m.present} puntuales · {m.late} tardanzas · {m.absent} faltas
+                    </p>
+                  )}
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-lg font-bold ${m.pct >= 80 ? 'text-green-600' : m.pct >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {m.pct}%
+                  </p>
+                  {m.fines > 0 && <p className="text-xs text-red-500">{formatCurrency(m.fines)}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl p-6 text-center text-gray-400 border border-dashed border-gray-200">
+            Sin datos para este período
+          </div>
+        )}
+      </section>
+
+      {/* Resto de miembros colapsado */}
+      {rest.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer text-sm text-violet-600 font-medium py-1 select-none list-none flex items-center gap-1">
+            <span className="group-open:hidden">▶ Ver todos ({rest.length} más)</span>
+            <span className="hidden group-open:inline">▼ Ocultar</span>
+          </summary>
+          <div className="space-y-2 mt-2">
+            {rest.map((m, i) => (
               <Link
                 key={m.id}
                 href={`/reportes/miembro/${m.id}`}
                 className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-gray-100"
               >
-                <span className="w-6 text-sm font-bold text-gray-400 text-center">{i + 1}</span>
+                <span className="w-6 text-sm font-bold text-gray-400 text-center">{i + 4}</span>
                 {m.photo_url ? (
                   <img src={m.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
@@ -132,29 +188,16 @@ export default async function ReportesPage({
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <AttPct pct={m.pct} />
+                  <p className={`text-sm font-bold ${m.pct >= 80 ? 'text-green-600' : m.pct >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {m.pct}%
+                  </p>
                   {m.fines > 0 && <p className="text-xs text-red-500">{formatCurrency(m.fines)}</p>}
                 </div>
               </Link>
             ))}
           </div>
-        ) : (
-          <div className="bg-white rounded-xl p-6 text-center text-gray-400 border border-dashed border-gray-200">
-            Sin datos para este período
-          </div>
-        )}
-      </section>
-    </div>
-  )
-}
-
-function AttPct({ pct }: { pct: number }) {
-  const color = pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-amber-600' : 'text-red-600'
-  const Icon = pct >= 80 ? TrendingUp : pct >= 60 ? Minus : TrendingDown
-  return (
-    <div className={`flex items-center gap-1 font-bold text-sm ${color}`}>
-      <Icon size={14} />
-      {pct}%
+        </details>
+      )}
     </div>
   )
 }

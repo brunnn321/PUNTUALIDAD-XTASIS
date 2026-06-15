@@ -4,6 +4,7 @@ import type { SectionName, AttendanceStatus } from '@/lib/supabase/types'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Music, Users, Pencil } from 'lucide-react'
+import AttendancePhoto from '@/components/director/AttendancePhoto'
 
 export default async function MiembroDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -20,7 +21,7 @@ export default async function MiembroDetailPage({ params }: { params: Promise<{ 
   // Obtener email desde auth.users via admin (puede no estar disponible con anon key)
   const { data: attendances } = await supabase
     .from('attendances')
-    .select('status, fine_amount, checked_in_at, events(title, starts_at, event_types(name))')
+    .select('status, fine_amount, checked_in_at, photo_url, events(title, starts_at, event_types(name))')
     .eq('user_id', id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -118,11 +119,21 @@ export default async function MiembroDetailPage({ params }: { params: Promise<{ 
                       {a.events?.starts_at ? ` · ${formatDateTime(a.events.starts_at)}` : ''}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bg} ${color}`}>{label}</span>
-                    {a.fine_amount > 0 && (
-                      <p className="text-xs text-red-500 mt-0.5">{formatCurrency(a.fine_amount)}</p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {a.photo_url && a.status !== 'absent' && (
+                      <AttendancePhoto url={a.photo_url} name={a.events?.title ?? ''} />
                     )}
+                    <div className="text-right">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bg} ${color}`}>{label}</span>
+                      {a.checked_in_at && a.status !== 'absent' && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(a.checked_in_at).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                      {a.fine_amount > 0 && (
+                        <p className="text-xs text-red-500 mt-0.5">{formatCurrency(a.fine_amount)}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )

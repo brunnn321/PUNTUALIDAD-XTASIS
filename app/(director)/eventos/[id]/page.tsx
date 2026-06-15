@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG } from '@/lib/utils'
 import EventControls from '@/components/director/EventControls'
+import AttendancePhoto from '@/components/director/AttendancePhoto'
 import type { AttendanceStatus, SectionName } from '@/lib/supabase/types'
 import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
@@ -116,11 +117,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
               return (
                 <div key={row.id} className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
-                  {/* Foto de asistencia si existe, si no foto de perfil, si no inicial */}
-                  {att?.photo_url ? (
-                    <img src={att.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  ) : row.photo_url ? (
-                    <img src={row.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  {/* Avatar de perfil */}
+                  {row.photo_url ? (
+                    <img src={row.photo_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm flex-shrink-0">
                       {row.full_name?.charAt(0)}
@@ -133,21 +132,32 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                       {row.instrument ? ` · ${row.instrument}` : ''}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    {statusCfg ? (
-                      <>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusCfg.bg} ${statusCfg.color}`}>
-                          {statusCfg.label}
-                        </span>
-                        {att!.fine_amount > 0 && (
-                          <p className="text-xs text-red-500 mt-1">{formatCurrency(att!.fine_amount)}</p>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-400">
-                        Pendiente
-                      </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Foto de asistencia en miniatura */}
+                    {att?.photo_url && att.status !== 'absent' && (
+                      <AttendancePhoto url={att.photo_url} name={row.full_name ?? ''} />
                     )}
+                    <div className="text-right">
+                      {statusCfg ? (
+                        <>
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusCfg.bg} ${statusCfg.color}`}>
+                            {statusCfg.label}
+                          </span>
+                          {att!.checked_in_at && att!.status !== 'absent' && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(att!.checked_in_at).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          )}
+                          {att!.fine_amount > 0 && (
+                            <p className="text-xs text-red-500 mt-0.5">{formatCurrency(att!.fine_amount)}</p>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-400">
+                          Pendiente
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )

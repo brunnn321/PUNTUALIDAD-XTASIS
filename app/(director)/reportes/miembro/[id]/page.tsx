@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatDateTime, formatCurrency, SECTION_LABELS, STATUS_CONFIG } from '@/lib/utils'
 import type { AttendanceStatus, SectionName } from '@/lib/supabase/types'
+import { settleFine } from '@/lib/actions/fines'
 import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -81,7 +82,7 @@ export default async function MemberReportPage({ params }: { params: Promise<{ i
               const { label, color, bg } = STATUS_CONFIG[att.status as AttendanceStatus]
               return (
                 <div key={att.id} className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm border border-gray-100">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm">{att.events?.title}</p>
                     <p className="text-xs text-gray-400">
                       {att.events?.event_types?.name} · {att.events?.starts_at ? formatDateTime(att.events.starts_at) : ''}
@@ -90,7 +91,18 @@ export default async function MemberReportPage({ params }: { params: Promise<{ i
                   <div className="text-right flex-shrink-0 ml-3">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${bg} ${color}`}>{label}</span>
                     {att.fine_amount > 0 && (
-                      <p className="text-xs text-red-500 mt-1">{formatCurrency(att.fine_amount)}</p>
+                      <div className="mt-1 flex items-center justify-end gap-2">
+                        <p className="text-xs text-red-500">{formatCurrency(att.fine_amount)}</p>
+                        <form action={settleFine}>
+                          <input type="hidden" name="attendanceId" value={att.id} />
+                          <button
+                            type="submit"
+                            className="text-xs text-green-600 font-medium border border-green-300 rounded-full px-2 py-0.5 hover:bg-green-50 transition-colors"
+                          >
+                            Saldar
+                          </button>
+                        </form>
+                      </div>
                     )}
                   </div>
                 </div>
