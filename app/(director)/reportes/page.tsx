@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency, SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
+import Link from 'next/link'
 import DateRangeFilter from '@/components/director/DateRangeFilter'
 
 const MEDALS = ['🥇', '🥈', '🥉']
