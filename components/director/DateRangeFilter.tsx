@@ -15,8 +15,9 @@ export default function DateRangeFilter({
   periodo: string
   basePath?: string
 }) {
-  const [from, setFrom] = useState(desde ?? '')
-  const [to, setTo]   = useState(hasta ?? '')
+  const today = new Date().toISOString().slice(0, 10)
+  const [from, setFrom] = useState(desde ?? today)
+  const [to, setTo]   = useState(hasta ?? today)
   const router = useRouter()
 
   const hasRange = !!(desde && hasta)
