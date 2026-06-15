@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency, SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
-import Link from 'next/link'
 import DateRangeFilter from '@/components/director/DateRangeFilter'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -81,11 +80,8 @@ export default async function ReportesPage({
 
   return (
     <div className="p-4 space-y-5 max-w-lg mx-auto">
-      <div className="pt-6 flex items-center justify-between">
+      <div className="pt-6">
         <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-        <Link href="/reportes/multas" className="text-sm text-violet-600 font-medium">
-          Ver multas →
-        </Link>
       </div>
 
       {/* Filtro de período + rango personalizado */}
