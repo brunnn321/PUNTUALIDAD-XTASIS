@@ -2,12 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatCurrency, SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
 import Link from 'next/link'
-
-const PERIODOS = [
-  { label: 'Esta semana', value: 'week' },
-  { label: 'Este mes',    value: 'month' },
-  { label: 'Todo',        value: 'all' },
-]
+import DateRangeFilter from '@/components/director/DateRangeFilter'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -30,9 +25,9 @@ function getPeriodStart(period: string): string | null {
 export default async function ReportesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periodo?: string }>
+  searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string }>
 }) {
-  const { periodo = 'month' } = await searchParams
+  const { periodo = 'month', desde, hasta } = await searchParams
   const supabase = await createClient()
 
   const { data: members } = await supabase
@@ -42,31 +37,32 @@ export default async function ReportesPage({
     .eq('active', true)
     .order('full_name')
 
-  const periodStart = getPeriodStart(periodo)
-
-  let attendanceQuery = supabase
+  const { data: attendances } = await supabase
     .from('attendances')
     .select('user_id, status, fine_amount, events(starts_at)')
 
-  if (periodStart) {
-    attendanceQuery = attendanceQuery.gte('events.starts_at', periodStart)
-  }
+  // Filtrar por rango personalizado o período rápido
+  const hasRange = !!(desde && hasta)
+  const periodStart = hasRange ? null : getPeriodStart(periodo)
+  const rangeStart = hasRange ? `${desde}T00:00:00` : null
+  const rangeEnd   = hasRange ? `${hasta}T23:59:59` : null
 
-  const { data: attendances } = await attendanceQuery
-
-  const filtered = attendances?.filter((a: any) => {
-    if (!periodStart) return true
-    return a.events?.starts_at >= periodStart
-  }) ?? []
+  const filtered = (attendances ?? []).filter((a: any) => {
+    const eventDate = a.events?.starts_at
+    if (!eventDate) return false
+    if (hasRange) return eventDate >= rangeStart! && eventDate <= rangeEnd!
+    if (periodStart) return eventDate >= periodStart
+    return true
+  })
 
   const stats = members?.map(m => {
     const myAtt = filtered.filter((a: any) => a.user_id === m.id)
-    const total = myAtt.length
+    const total   = myAtt.length
     const present = myAtt.filter((a: any) => a.status === 'present').length
-    const late = myAtt.filter((a: any) => a.status === 'late').length
-    const absent = myAtt.filter((a: any) => a.status === 'absent').length
-    const fines = myAtt.reduce((sum: number, a: any) => sum + a.fine_amount, 0)
-    const pct = total > 0 ? Math.round(((present + late) / total) * 100) : 0
+    const late    = myAtt.filter((a: any) => a.status === 'late').length
+    const absent  = myAtt.filter((a: any) => a.status === 'absent').length
+    const fines   = myAtt.reduce((sum: number, a: any) => sum + a.fine_amount, 0)
+    const pct     = total > 0 ? Math.round(((present + late) / total) * 100) : 0
     return { ...m, total, present, late, absent, fines, pct }
   }) ?? []
 
@@ -74,7 +70,14 @@ export default async function ReportesPage({
   const totalFines = filtered.reduce((sum: number, a: any) => sum + a.fine_amount, 0)
 
   const top3 = ranked.slice(0, 3)
-  const rest = ranked.slice(3)
+  const rest  = ranked.slice(3)
+
+  // Etiqueta del rango activo para mostrar en el card de multas
+  const rangeLabel = hasRange
+    ? `${desde} → ${hasta}`
+    : periodo === 'week' ? 'últimos 7 días'
+    : periodo === 'month' ? 'este mes'
+    : 'todo el tiempo'
 
   return (
     <div className="p-4 space-y-5 max-w-lg mx-auto">
@@ -85,26 +88,12 @@ export default async function ReportesPage({
         </Link>
       </div>
 
-      {/* Filtros de período */}
-      <div className="flex gap-2">
-        {PERIODOS.map(p => (
-          <Link
-            key={p.value}
-            href={`/reportes?periodo=${p.value}`}
-            className={`flex-1 text-center text-sm py-2 rounded-xl border font-medium transition-colors ${
-              periodo === p.value
-                ? 'bg-violet-600 text-white border-violet-600'
-                : 'bg-white text-gray-600 border-gray-200'
-            }`}
-          >
-            {p.label}
-          </Link>
-        ))}
-      </div>
+      {/* Filtro de período + rango personalizado */}
+      <DateRangeFilter periodo={periodo} desde={desde} hasta={hasta} />
 
       {/* Total multas */}
       <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
-        <p className="text-sm text-gray-500">Multas acumuladas en el período</p>
+        <p className="text-sm text-gray-500">Multas · {rangeLabel}</p>
         <p className="text-3xl font-bold text-red-700">{formatCurrency(totalFines)}</p>
       </div>
 
