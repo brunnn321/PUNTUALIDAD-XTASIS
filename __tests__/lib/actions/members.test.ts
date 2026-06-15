@@ -15,7 +15,7 @@ vi.mock('@/lib/supabase/server', () => ({
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { createMember, updateMember } from '@/lib/actions/members'
+import { createMember, updateMember, deleteMember, setMembersActive } from '@/lib/actions/members'
 
 const mockRedirect = vi.mocked(redirect)
 const mockCreateAdminClient = vi.mocked(createAdminClient)
@@ -131,6 +131,82 @@ describe('createMember', () => {
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({ instrument: null })
     )
+  })
+})
+
+describe('deleteMember', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('calls auth.admin.deleteUser with the given id', async () => {
+    const deleteUserMock = vi.fn().mockResolvedValue({ error: null })
+    mockCreateAdminClient.mockReturnValue({
+      auth: { admin: { deleteUser: deleteUserMock } },
+    } as any)
+
+    await deleteMember('user-123')
+    expect(deleteUserMock).toHaveBeenCalledWith('user-123')
+  })
+
+  it('redirects to /miembros after deletion', async () => {
+    mockCreateAdminClient.mockReturnValue({
+      auth: { admin: { deleteUser: vi.fn().mockResolvedValue({ error: null }) } },
+    } as any)
+
+    await deleteMember('user-123')
+    expect(mockRedirect).toHaveBeenCalledWith('/miembros')
+  })
+})
+
+describe('setMembersActive', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function makeChain() {
+    const inMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ in: inMock })
+    const fromMock = vi.fn().mockReturnValue({ update: updateMock })
+    return { fromMock, updateMock, inMock }
+  }
+
+  it('sets active=false for the given ids', async () => {
+    const { fromMock, updateMock, inMock } = makeChain()
+    mockCreateClient.mockResolvedValue({ from: fromMock } as any)
+
+    await setMembersActive(['id-1', 'id-2'], false)
+
+    expect(fromMock).toHaveBeenCalledWith('profiles')
+    expect(updateMock).toHaveBeenCalledWith({ active: false })
+    expect(inMock).toHaveBeenCalledWith('id', ['id-1', 'id-2'])
+  })
+
+  it('sets active=true for the given ids', async () => {
+    const { fromMock, updateMock, inMock } = makeChain()
+    mockCreateClient.mockResolvedValue({ from: fromMock } as any)
+
+    await setMembersActive(['id-3'], true)
+
+    expect(updateMock).toHaveBeenCalledWith({ active: true })
+    expect(inMock).toHaveBeenCalledWith('id', ['id-3'])
+  })
+
+  it('handles multiple ids correctly', async () => {
+    const { fromMock, inMock } = makeChain()
+    mockCreateClient.mockResolvedValue({ from: fromMock } as any)
+
+    const ids = ['a', 'b', 'c', 'd']
+    await setMembersActive(ids, false)
+
+    expect(inMock).toHaveBeenCalledWith('id', ids)
+  })
+
+  it('does not throw with an empty array', async () => {
+    const { fromMock } = makeChain()
+    mockCreateClient.mockResolvedValue({ from: fromMock } as any)
+
+    await expect(setMembersActive([], true)).resolves.not.toThrow()
   })
 })
 
