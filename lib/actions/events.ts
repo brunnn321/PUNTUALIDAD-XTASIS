@@ -2,6 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+export async function deleteEventById(id: string) {
+  const supabase = await createClient()
+  await supabase.from('events').delete().eq('id', id)
+}
+
 export async function autoCloseExpiredEvents() {
   const supabase = await createClient()
   const now = new Date().toISOString()
