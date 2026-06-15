@@ -8,10 +8,12 @@ export default function DateRangeFilter({
   desde,
   hasta,
   periodo,
+  basePath = '/reportes',
 }: {
   desde?: string
   hasta?: string
   periodo: string
+  basePath?: string
 }) {
   const [from, setFrom] = useState(desde ?? '')
   const [to, setTo]   = useState(hasta ?? '')
@@ -21,13 +23,13 @@ export default function DateRangeFilter({
 
   function apply() {
     if (!from || !to) return
-    router.push(`/reportes?desde=${from}&hasta=${to}`)
+    router.push(`${basePath}?desde=${from}&hasta=${to}`)
   }
 
   function clear() {
     setFrom('')
     setTo('')
-    router.push('/reportes?periodo=month')
+    router.push(`${basePath}?periodo=month`)
   }
 
   const PERIODOS = [
@@ -43,7 +45,7 @@ export default function DateRangeFilter({
         {PERIODOS.map(p => (
           <button
             key={p.value}
-            onClick={() => { setFrom(''); setTo(''); router.push(`/reportes?periodo=${p.value}`) }}
+            onClick={() => { setFrom(''); setTo(''); router.push(`${basePath}?periodo=${p.value}`) }}
             className={`flex-1 text-center text-sm py-2 rounded-xl border font-medium transition-colors ${
               !hasRange && periodo === p.value
                 ? 'bg-violet-600 text-white border-violet-600'
