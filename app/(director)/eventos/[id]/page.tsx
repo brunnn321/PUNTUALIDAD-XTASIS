@@ -21,13 +21,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   if (!event) notFound()
 
-  // Todos los miembros aplicables al evento según secciones
+  // Para eventos cerrados mostramos activos + inactivos (inactivos al final)
+  // Para eventos abiertos/programados solo activos
+  const isClosed = event.status === 'closed'
+
   let membersQuery = supabase
     .from('profiles')
-    .select('id, full_name, photo_url, section, instrument')
+    .select('id, full_name, photo_url, section, instrument, active')
     .eq('role', 'member')
-    .eq('active', true)
     .order('full_name')
+
+  if (!isClosed) {
+    membersQuery = membersQuery.eq('active', true)
+  }
 
   if (event.target_sections && event.target_sections.length > 0) {
     membersQuery = membersQuery.in('section', event.target_sections)
@@ -44,11 +50,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   // Mapa rápido user_id → asistencia
   const attMap = new Map(attendances?.map(a => [a.user_id, a]) ?? [])
 
-  // Combinar miembros con su estado
-  const rows = (members ?? []).map(m => ({
+  // Combinar miembros con su estado; en eventos cerrados, inactivos al final
+  const allRows = (members ?? []).map(m => ({
     ...m,
     attendance: attMap.get(m.id) ?? null,
   }))
+  const rows = isClosed
+    ? [...allRows.filter(r => r.active !== false), ...allRows.filter(r => r.active === false)]
+    : allRows
 
   const present  = rows.filter(r => r.attendance?.status === 'present').length
   const late     = rows.filter(r => r.attendance?.status === 'late').length
@@ -126,7 +135,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm truncate">{row.full_name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium text-gray-900 text-sm truncate">{row.full_name}</p>
+                      {row.active === false && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 flex-shrink-0">Inactivo</span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400">
                       {row.section ? SECTION_LABELS[row.section as SectionName] : ''}
                       {row.instrument ? ` · ${row.instrument}` : ''}

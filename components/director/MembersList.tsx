@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { UserX, UserCheck, CheckSquare, Square, X, Trash2, CalendarPlus } from 'lucide-react'
-import { deleteMemberById } from '@/lib/actions/members'
+import { UserX, UserCheck, CheckSquare, Square, X, UserMinus, UserPlus } from 'lucide-react'
+import { setMembersActive } from '@/lib/actions/members'
 import { SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
 
@@ -26,9 +26,10 @@ export default function MembersList({
 }) {
   const [mode, setMode] = useState<'view' | 'select'>('view')
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+
+  const allMembers = [...active, ...inactive]
 
   function toggleSelect(id: string) {
     setSelected(prev => {
@@ -42,31 +43,24 @@ export default function MembersList({
   function exitSelect() {
     setMode('view')
     setSelected(new Set())
-    setConfirmDelete(false)
   }
 
-  function handleCreateEvent() {
-    const allMembers = [...active, ...inactive]
-    const sections = [...new Set(
-      allMembers
-        .filter(m => selected.has(m.id) && m.section)
-        .map(m => m.section as string)
-    )]
-    const query = sections.length > 0 ? `?sections=${sections.join(',')}` : ''
-    router.push(`/eventos/nuevo${query}`)
-  }
+  // Determinar qué acciones mostrar según la selección
+  const selectedMembers = allMembers.filter(m => selected.has(m.id))
+  const hasActive   = selectedMembers.some(m => m.active)
+  const hasInactive = selectedMembers.some(m => !m.active)
 
-  async function handleDeleteSelected() {
+  function handleSetActive(newActive: boolean) {
+    const ids = selectedMembers
+      .filter(m => (newActive ? !m.active : m.active))
+      .map(m => m.id)
+    if (ids.length === 0) return
     startTransition(async () => {
-      for (const id of selected) {
-        await deleteMemberById(id)
-      }
+      await setMembersActive(ids, newActive)
       exitSelect()
       router.refresh()
     })
   }
-
-  const allMembers = [...active, ...inactive]
 
   return (
     <div className="space-y-6">
@@ -129,38 +123,26 @@ export default function MembersList({
             <p className="text-sm font-medium text-center text-gray-300">
               {selected.size} miembro{selected.size !== 1 ? 's' : ''} seleccionado{selected.size !== 1 ? 's' : ''}
             </p>
-
             <div className="flex gap-2">
-              <button
-                onClick={handleCreateEvent}
-                className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
-              >
-                <CalendarPlus size={15} /> Crear evento
-              </button>
-
-              {!confirmDelete ? (
+              {hasActive && (
                 <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
+                  onClick={() => handleSetActive(false)}
+                  disabled={isPending}
+                  className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
                 >
-                  <Trash2 size={15} /> Eliminar
+                  <UserMinus size={15} />
+                  {isPending ? '...' : 'Desactivar'}
                 </button>
-              ) : (
-                <div className="flex-1 flex gap-2">
-                  <button
-                    onClick={handleDeleteSelected}
-                    disabled={isPending}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
-                  >
-                    {isPending ? '...' : 'Sí'}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
-                  >
-                    No
-                  </button>
-                </div>
+              )}
+              {hasInactive && (
+                <button
+                  onClick={() => handleSetActive(true)}
+                  disabled={isPending}
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  <UserPlus size={15} />
+                  {isPending ? '...' : 'Reactivar'}
+                </button>
               )}
             </div>
           </div>

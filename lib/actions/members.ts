@@ -49,10 +49,10 @@ export async function deleteMember(id: string) {
   redirect('/miembros')
 }
 
-// Versión sin redirect, para borrar varios en loop desde un componente cliente
-export async function deleteMemberById(id: string) {
-  const supabase = createAdminClient()
-  await supabase.auth.admin.deleteUser(id)
+// Activar o desactivar múltiples miembros desde selección en lista
+export async function setMembersActive(ids: string[], active: boolean) {
+  const supabase = await createClient()
+  await supabase.from('profiles').update({ active }).in('id', ids)
 }
 
 export async function updateMember(_: unknown, formData: FormData) {
