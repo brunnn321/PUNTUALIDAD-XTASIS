@@ -2,15 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Calendar, Users, BarChart3, Settings } from 'lucide-react'
+import { LayoutDashboard, Calendar, Users, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const nav = [
-  { href: '/dashboard',     icon: LayoutDashboard, label: 'Inicio' },
-  { href: '/eventos',       icon: Calendar,        label: 'Eventos' },
-  { href: '/miembros',      icon: Users,           label: 'Miembros' },
-  { href: '/reportes',      icon: BarChart3,        label: 'Reportes' },
-  { href: '/configuracion', icon: Settings,         label: 'Config' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },
+  { href: '/eventos',   icon: Calendar,        label: 'Eventos' },
+  { href: '/miembros',  icon: Users,           label: 'Miembros' },
+  { href: '/reportes',  icon: BarChart3,       label: 'Reportes' },
 ]
 
 export default function DirectorNav() {
