@@ -15,9 +15,15 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, section, welcomed')
+          .select('role, section, welcomed, active')
           .eq('id', user.id)
           .single()
+
+        // Cuenta desactivada: no se le concede sesión
+        if (profile?.active === false) {
+          await supabase.auth.signOut()
+          return NextResponse.redirect(`${origin}/login?error=inactive`)
+        }
 
         // El login de miembro ya no se usa (modo kiosco en "/"); solo el director
         // pasa por este flujo. Cualquier cuenta no-director cae al kiosco.

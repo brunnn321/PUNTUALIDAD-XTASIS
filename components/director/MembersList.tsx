@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { UserX, UserCheck, CheckSquare, Square, X, UserMinus, UserPlus } from 'lucide-react'
-import { setMembersActive } from '@/lib/actions/members'
+import { UserX, UserCheck, CheckSquare, Square, X, UserMinus, UserPlus, Trash2 } from 'lucide-react'
+import { setMembersActive, deleteMembersByIds } from '@/lib/actions/members'
 import { SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
 
@@ -26,6 +26,7 @@ export default function MembersList({
 }) {
   const [mode, setMode] = useState<'view' | 'select'>('view')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
@@ -43,6 +44,7 @@ export default function MembersList({
   function exitSelect() {
     setMode('view')
     setSelected(new Set())
+    setConfirmDelete(false)
   }
 
   // Determinar qué acciones mostrar según la selección
@@ -57,6 +59,16 @@ export default function MembersList({
     if (ids.length === 0) return
     startTransition(async () => {
       await setMembersActive(ids, newActive)
+      exitSelect()
+      router.refresh()
+    })
+  }
+
+  function handleDeleteSelected() {
+    const ids = selectedMembers.filter(m => !m.active).map(m => m.id)
+    if (ids.length === 0) return
+    startTransition(async () => {
+      await deleteMembersByIds(ids)
       exitSelect()
       router.refresh()
     })
@@ -123,28 +135,61 @@ export default function MembersList({
             <p className="text-sm font-medium text-center text-gray-300">
               {selected.size} miembro{selected.size !== 1 ? 's' : ''} seleccionado{selected.size !== 1 ? 's' : ''}
             </p>
-            <div className="flex gap-2">
-              {hasActive && (
-                <button
-                  onClick={() => handleSetActive(false)}
-                  disabled={isPending}
-                  className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
-                >
-                  <UserMinus size={15} />
-                  {isPending ? '...' : 'Desactivar'}
-                </button>
-              )}
-              {hasInactive && (
-                <button
-                  onClick={() => handleSetActive(true)}
-                  disabled={isPending}
-                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
-                >
-                  <UserPlus size={15} />
-                  {isPending ? '...' : 'Reactivar'}
-                </button>
-              )}
-            </div>
+            {!confirmDelete ? (
+              <div className="flex gap-2">
+                {hasActive && (
+                  <button
+                    onClick={() => handleSetActive(false)}
+                    disabled={isPending}
+                    className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <UserMinus size={15} />
+                    {isPending ? '...' : 'Desactivar'}
+                  </button>
+                )}
+                {hasInactive && (
+                  <button
+                    onClick={() => handleSetActive(true)}
+                    disabled={isPending}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <UserPlus size={15} />
+                    {isPending ? '...' : 'Reactivar'}
+                  </button>
+                )}
+                {hasInactive && (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={isPending}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={15} />
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-center text-gray-300">
+                  ¿Eliminar {selectedMembers.filter(m => !m.active).length} miembro{selectedMembers.filter(m => !m.active).length !== 1 ? 's' : ''} inactivo{selectedMembers.filter(m => !m.active).length !== 1 ? 's' : ''} permanentemente?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDeleteSelected}
+                    disabled={isPending}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {isPending ? '...' : 'Sí'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
