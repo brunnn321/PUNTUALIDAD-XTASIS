@@ -67,24 +67,45 @@ export default function KioskCamera({ eventId, member, onClose }: Props) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+
     const reader = new FileReader()
-    reader.onload = () => submit(reader.result as string)
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        // Las fotos de galería pueden pesar varios MB; se reescalan
+        // y recomprimen antes de enviarlas al server action.
+        const maxSize = 1080
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+        const canvas = canvasRef.current ?? document.createElement('canvas')
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        submit(canvas.toDataURL('image/jpeg', 0.85))
+      }
+      img.src = reader.result as string
+    }
     reader.readAsDataURL(file)
   }
 
   async function submit(dataUrl: string) {
     setPhase('submitting')
-    const result = await registerKioskAttendance(eventId, member.id, dataUrl)
+    try {
+      const result = await registerKioskAttendance(eventId, member.id, dataUrl)
 
-    if (result?.error) {
-      setErrorMsg(result.error)
+      if (result?.error) {
+        setErrorMsg(result.error)
+        setPhase('error')
+      } else {
+        setPhase('done')
+        setTimeout(() => {
+          router.refresh()
+          onClose()
+        }, 1800)
+      }
+    } catch {
+      setErrorMsg('No se pudo registrar la asistencia. Intenta de nuevo con una foto más liviana.')
       setPhase('error')
-    } else {
-      setPhase('done')
-      setTimeout(() => {
-        router.refresh()
-        onClose()
-      }, 1800)
     }
   }
 
