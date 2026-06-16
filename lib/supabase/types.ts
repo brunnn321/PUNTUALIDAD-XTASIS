@@ -15,6 +15,8 @@ export interface Database {
           section: SectionName | null
           instrument: string | null
           active: boolean
+          welcomed: boolean
+          name_edited: boolean
           created_at: string
           updated_at: string
         }
@@ -26,6 +28,8 @@ export interface Database {
           section?: SectionName | null
           instrument?: string | null
           active?: boolean
+          welcomed?: boolean
+          name_edited?: boolean
         }
         Update: {
           full_name?: string
@@ -34,6 +38,8 @@ export interface Database {
           section?: SectionName | null
           instrument?: string | null
           active?: boolean
+          welcomed?: boolean
+          name_edited?: boolean
         }
       }
       event_types: {
@@ -97,6 +103,7 @@ export interface Database {
           user_id: string
           status: AttendanceStatus
           checked_in_at: string | null
+          photo_url: string | null
           fine_amount: number
           edited_by: string | null
           created_at: string
@@ -107,11 +114,13 @@ export interface Database {
           user_id: string
           status: AttendanceStatus
           checked_in_at?: string | null
+          photo_url?: string | null
           fine_amount?: number
         }
         Update: {
           status?: AttendanceStatus
           checked_in_at?: string | null
+          photo_url?: string | null
           fine_amount?: number
           edited_by?: string | null
         }

@@ -38,6 +38,7 @@ export async function createMember(_: unknown, formData: FormData) {
       instrument: instrument || null,
       role: 'member',
       active: true,
+      welcomed: false,
     })
 
   redirect('/miembros')

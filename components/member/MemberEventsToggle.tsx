@@ -29,7 +29,7 @@ export default function MemberEventsToggle({
   past: MemberEvent[]
   allEvents: MemberEvent[]
 }) {
-  const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [view, setView] = useState<'list' | 'calendar'>('calendar')
 
   // EventsCalendarView espera objetos con starts_at y event_types
   const calEvents = allEvents.map(e => ({ ...e, event_types: e.event_types }))

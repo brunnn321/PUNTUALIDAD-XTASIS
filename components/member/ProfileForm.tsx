@@ -45,11 +45,14 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
       }
     }
 
+    const nameChanged = fullName !== profile.full_name && !profile.name_edited
+
     await supabase
       .from('profiles')
       .update({
-        full_name: fullName,
+        ...(profile.name_edited ? {} : { full_name: fullName }),
         ...(photoUrl !== profile.photo_url ? { photo_url: photoUrl } : {}),
+        ...(nameChanged ? { name_edited: true } : {}),
       })
       .eq('id', profile.id)
 
@@ -100,12 +103,21 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
       <form onSubmit={handleSave} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-gray-700">Nombre completo</label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-          />
+          {profile.name_edited ? (
+            <>
+              <p className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700">
+                {profile.full_name}
+              </p>
+              <p className="text-xs text-gray-400">Ya usaste tu cambio de nombre. Solo el director puede modificarlo de nuevo.</p>
+            </>
+          ) : (
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          )}
         </div>
 
         <div className="space-y-1.5">

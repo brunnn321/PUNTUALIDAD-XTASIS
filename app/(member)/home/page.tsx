@@ -2,7 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDateTime, formatCurrency, SECTION_LABELS, EVENT_STATUS_CONFIG } from '@/lib/utils'
 import { autoCloseExpiredEvents } from '@/lib/actions/events'
 import CheckInButton from '@/components/member/CheckInButton'
+import AttendancePhoto from '@/components/director/AttendancePhoto'
+import { getLeastFinesRanking } from '@/lib/actions/rankings'
 import type { SectionName, EventWithType } from '@/lib/supabase/types'
+
+const MEDALS = ['🥇', '🥈', '🥉']
 
 export default async function HomePage() {
   // Cerrar automáticamente eventos vencidos antes de cargar la página
@@ -45,6 +49,9 @@ export default async function HomePage() {
 
   const totalFines = fineData?.reduce((sum, a) => sum + a.fine_amount, 0) ?? 0
 
+  // Top 3 con menos multas del grupo
+  const top3 = await getLeastFinesRanking(3)
+
   // Determinar si el evento aplica a este miembro
   function appliesToMe(event: EventWithType): boolean {
     if (!event.target_sections || event.target_sections.length === 0) return true
@@ -77,6 +84,33 @@ export default async function HomePage() {
           </div>
           <a href="/mis-multas" className="text-sm text-red-600 underline">Ver detalle</a>
         </div>
+      )}
+
+      {/* Top 3 con menos multas */}
+      {top3.length > 0 && (
+        <section>
+          <h2 className="font-semibold text-gray-900 mb-3">Top 3 · Menos multas</h2>
+          <div className="space-y-2">
+            {top3.map((m, i) => (
+              <div key={m.id} className="flex items-center gap-3 rounded-xl p-3 shadow-sm border bg-white border-gray-100">
+                <span className="text-2xl w-8 text-center">{MEDALS[i]}</span>
+                {m.photo_url ? (
+                  <img src={m.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm">
+                    {m.full_name?.charAt(0)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm truncate">{m.full_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {m.section ? SECTION_LABELS[m.section as SectionName] : 'Sin sección'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Próximos eventos */}
@@ -126,7 +160,12 @@ export default async function HomePage() {
                 )}
 
                 {applies && myAttendance && (
-                  <p className="text-xs text-gray-400 text-center">Asistencia ya registrada</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-xs text-gray-400">Asistencia ya registrada</p>
+                    {myAttendance.photo_url && (
+                      <AttendancePhoto url={myAttendance.photo_url} name={event.title} />
+                    )}
+                  </div>
                 )}
               </div>
             )

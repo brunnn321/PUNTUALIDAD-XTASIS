@@ -15,9 +15,14 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, section')
+          .select('role, section, welcomed')
           .eq('id', user.id)
           .single()
+
+        // Primer ingreso del miembro: pantalla de bienvenida única
+        if (profile?.role === 'member' && profile?.welcomed === false) {
+          return NextResponse.redirect(`${origin}/bienvenida`)
+        }
 
         // Si falta completar el perfil (sección/instrumento)
         if (profile?.role === 'member' && !profile?.section) {

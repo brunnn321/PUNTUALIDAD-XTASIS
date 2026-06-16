@@ -68,7 +68,8 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/home') ||
       pathname.startsWith('/mis-eventos') ||
       pathname.startsWith('/mis-multas') ||
-      pathname.startsWith('/perfil')) {
+      pathname.startsWith('/perfil') ||
+      pathname.startsWith('/bienvenida')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
