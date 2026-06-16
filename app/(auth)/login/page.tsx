@@ -43,8 +43,8 @@ export default function LoginPage() {
           </button>
 
           <p className="text-xs text-center text-gray-400">
-            Solo los miembros registrados pueden acceder.<br />
-            Contacta al director si no puedes entrar.
+            Acceso solo para el director.<br />
+            Los miembros marcan su asistencia directamente en la pantalla de inicio.
           </p>
         </div>
       </div>

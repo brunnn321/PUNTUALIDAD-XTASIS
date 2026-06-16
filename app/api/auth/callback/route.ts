@@ -19,17 +19,9 @@ export async function GET(request: Request) {
           .eq('id', user.id)
           .single()
 
-        // Primer ingreso del miembro: pantalla de bienvenida única
-        if (profile?.role === 'member' && profile?.welcomed === false) {
-          return NextResponse.redirect(`${origin}/bienvenida`)
-        }
-
-        // Si falta completar el perfil (sección/instrumento)
-        if (profile?.role === 'member' && !profile?.section) {
-          return NextResponse.redirect(`${origin}/perfil?onboarding=true`)
-        }
-
-        const dest = profile?.role === 'director' ? '/dashboard' : '/home'
+        // El login de miembro ya no se usa (modo kiosco en "/"); solo el director
+        // pasa por este flujo. Cualquier cuenta no-director cae al kiosco.
+        const dest = profile?.role === 'director' ? '/dashboard' : '/'
         return NextResponse.redirect(`${origin}${dest}`)
       }
     }

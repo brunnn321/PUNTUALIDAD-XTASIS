@@ -26,6 +26,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  // Raíz: kiosco público de check-in para miembros, sin sesión requerida.
+  // app/page.tsx decide internamente si redirige al director a /dashboard.
+  if (pathname === '/') {
+    return supabaseResponse
+  }
+
   // Rutas públicas
   if (pathname.startsWith('/login') || pathname.startsWith('/api/auth')) {
     if (user) {
@@ -36,7 +42,7 @@ export async function proxy(request: NextRequest) {
         .eq('id', user.id)
         .single()
 
-      const dest = profile?.role === 'director' ? '/dashboard' : '/home'
+      const dest = profile?.role === 'director' ? '/dashboard' : '/'
       return NextResponse.redirect(new URL(dest, request.url))
     }
     return supabaseResponse

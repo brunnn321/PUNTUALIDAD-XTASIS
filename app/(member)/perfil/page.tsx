@@ -13,21 +13,10 @@ export default async function PerfilPage() {
 
   return (
     <div className="p-4 max-w-lg mx-auto">
-      <div className="pt-6 mb-6 flex items-center justify-between">
+      <div className="pt-6 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mi perfil</h1>
-        <LogoutButton />
       </div>
       {profile && <ProfileForm profile={profile} />}
     </div>
-  )
-}
-
-function LogoutButton() {
-  return (
-    <form action="/api/auth/logout" method="POST">
-      <button type="submit" className="text-sm text-red-500 font-medium">
-        Cerrar sesión
-      </button>
-    </form>
   )
 }
