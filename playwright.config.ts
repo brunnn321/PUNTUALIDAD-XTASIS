@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
+import { config } from 'dotenv'
+import path from 'path'
 
-const localSupabaseUrl = 'http://127.0.0.1:54321'
-const localSupabaseAnonKey =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDYxNzkyMDAsImV4cCI6MTk2MTc1NTIwMH0.7rR9-MxaGgKUNWrpEPtN1TUrL6sN8G4OAI_jiv9KDTQ'
+config({ path: path.resolve(__dirname, '.env.local') })
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -22,9 +22,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? localSupabaseUrl,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? localSupabaseAnonKey,
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,
     },
   },
   projects: [

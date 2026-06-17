@@ -1,3 +1,6 @@
 allowBuilds:
+  '@ampproject/toolbox-optimizer': true
+  '@sentry/cli': true
+  es5-ext: true
   sharp: true
   unrs-resolver: true
