@@ -176,6 +176,7 @@ export default async function HomePage() {
                 {applies && !myAttendance && (
                   <CheckInButton
                     eventId={event.id}
+                    eventTitle={event.title}
                     isOpen={isOpen}
                     opensAt={event.checkin_opens_at}
                     autoOpen={autoOpenEventId === event.id}

@@ -9,10 +9,11 @@ type Phase = 'camera' | 'preview' | 'submitting' | 'done' | 'error'
 
 interface Props {
   eventId: string
+  eventTitle?: string
   onClose: () => void
 }
 
-export default function CheckInCamera({ eventId, onClose }: Props) {
+export default function CheckInCamera({ eventId, eventTitle, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -139,7 +140,7 @@ export default function CheckInCamera({ eventId, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 text-white bg-black/60">
+      <div className="flex items-center justify-between px-4 py-3 text-white bg-black/60" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
         <button
           onClick={() => { stopCamera(); onClose() }}
           className="p-2 rounded-full hover:bg-white/10"
@@ -147,11 +148,14 @@ export default function CheckInCamera({ eventId, onClose }: Props) {
         >
           <X size={24} />
         </button>
-        <p className="font-semibold text-sm">
-          {phase === 'camera' && 'Toma una foto'}
-          {phase === 'preview' && '¿Usar esta foto?'}
-          {phase === 'submitting' && 'Registrando...'}
-        </p>
+        <div className="text-center">
+          {eventTitle && <p className="text-xs text-white/60 leading-none mb-0.5">{eventTitle}</p>}
+          <p className="font-semibold text-sm">
+            {phase === 'camera' && 'Toma una foto'}
+            {phase === 'preview' && '¿Usar esta foto?'}
+            {phase === 'submitting' && 'Registrando...'}
+          </p>
+        </div>
         <div className="w-10" />
       </div>
 
@@ -221,7 +225,7 @@ export default function CheckInCamera({ eventId, onClose }: Props) {
 
       {/* Controles inferiores */}
       {phase === 'camera' && (
-        <div className="p-8 flex flex-col items-center gap-3 bg-black">
+        <div className="flex flex-col items-center gap-3 bg-black px-8 pt-6" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
           <p className="text-white/60 text-xs">Centra tu cara en el círculo</p>
           <button
             onClick={capturePhoto}
@@ -234,7 +238,7 @@ export default function CheckInCamera({ eventId, onClose }: Props) {
       )}
 
       {phase === 'preview' && (
-        <div className="p-5 flex gap-3 bg-black">
+        <div className="flex gap-3 bg-black px-5 pt-5" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
           {errorMsg && (
             <div className="absolute bottom-24 left-4 right-4 bg-red-900/80 text-white text-xs rounded-xl px-4 py-3 text-center">
               {errorMsg}

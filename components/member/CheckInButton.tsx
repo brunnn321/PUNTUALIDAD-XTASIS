@@ -9,12 +9,13 @@ import CheckInCamera from './CheckInCamera'
 
 interface Props {
   eventId: string
+  eventTitle?: string
   isOpen: boolean
   opensAt: string
   autoOpen?: boolean
 }
 
-export default function CheckInButton({ eventId, isOpen, opensAt, autoOpen = false }: Props) {
+export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, autoOpen = false }: Props) {
   const [showCamera, setShowCamera] = useState(autoOpen && isOpen)
   const [galleryPhoto, setGalleryPhoto] = useState<string | null>(null)
   const [submitting, startSubmit] = useTransition()
@@ -147,6 +148,7 @@ export default function CheckInButton({ eventId, isOpen, opensAt, autoOpen = fal
       {showCamera && (
         <CheckInCamera
           eventId={eventId}
+          eventTitle={eventTitle}
           onClose={() => setShowCamera(false)}
         />
       )}
