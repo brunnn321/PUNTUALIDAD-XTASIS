@@ -51,7 +51,11 @@ test('auth redirects unauthenticated users and routes each role to its home', as
   await context.clearCookies()
   await signInAs(context, baseURL!, member.email)
   await page.goto('/')
-  await expect(page).toHaveURL(/\/home$/)
+  // El miembro llega al kiosco (/), no a /home directamente
+  await expect(page).toHaveURL(/^http:\/\/localhost:3000\/$/)
+
+  // Desde el kiosco navega a /home con la barra inferior
+  await page.goto('/home')
   await expect(page.getByRole('heading', { name: /Miembro/i })).toBeVisible()
 
   await page.goto('/dashboard')
@@ -113,7 +117,7 @@ test('director creates a scheduled sectional event from the events form', async 
 
   await signInAs(context, baseURL!, director.email)
   await page.goto('/eventos')
-  await page.getByRole('link', { name: /Nuevo/i }).click()
+  await page.getByRole('link', { name: 'Nuevo', exact: true }).click()
   await expect(page.getByRole('heading', { name: /Nuevo evento/i })).toBeVisible()
   await page.waitForLoadState('networkidle')
 
@@ -128,8 +132,9 @@ test('director creates a scheduled sectional event from the events form', async 
   await page.getByRole('button', { name: /Crear evento/i }).click()
 
   await expect(page).toHaveURL(/\/eventos$/)
-  await expect(page.getByText(title)).toBeVisible()
-  await expect(page.getByText('Programado')).toBeVisible()
+  const newEventRow = page.getByRole('link', { name: title })
+  await expect(newEventRow).toBeVisible()
+  await expect(newEventRow.getByText('Programado')).toBeVisible()
 
   const { data } = await db.from('events').select('id').eq('title', title).single()
   if (data?.id) createdEvents.push(data.id)
@@ -170,7 +175,7 @@ test('director opens an event detail and closes it registering absences', async 
   await closeButton.click()
 
   await expect(page.getByText('Evento cerrado')).toBeVisible()
-  await expect(page.getByText('Falta')).toBeVisible()
+  await expect(page.getByText('Falta').first()).toBeVisible()
   await expect(page.getByText(/Multas generadas/i)).toBeVisible()
 })
 

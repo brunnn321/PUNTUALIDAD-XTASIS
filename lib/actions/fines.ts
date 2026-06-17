@@ -9,6 +9,7 @@ export async function settleFine(formData: FormData) {
   if (!attendanceId) return
 
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const { error } = await supabase
     .from('attendances')
     .update({ fine_amount: 0 })

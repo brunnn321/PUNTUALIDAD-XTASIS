@@ -16,12 +16,24 @@ Descripción de todos los componentes y flujos de la aplicación desde el punto 
 ### HU-01 · Login con Google
 > Como usuario (director o miembro), quiero entrar a la app con mi cuenta de Google para no tener que recordar una contraseña.
 
-**Flujo:** El usuario ve la pantalla `/login` con el botón "Continuar con Google". Al hacer clic se abre el popup de Google. Al autorizar, el sistema lee su rol en la base de datos y lo redirige:
+**Flujo:** El usuario ve la pantalla `/login` con el botón "Continuar con Google". Al hacer clic se abre el popup de Google. Al autorizar, el sistema lee su rol y estado en la base de datos:
 - Si es director → `/dashboard`
 - Si es miembro → `/home`
+- Si el usuario está **inactivo** (`active = false`) → se cierra la sesión inmediatamente y se redirige a `/login?error=inactive`
 - Si aún no tiene perfil creado → se crea automáticamente con rol `member`
 
 **Archivos:** `app/(auth)/login/page.tsx`, `app/api/auth/callback/route.ts`
+
+---
+
+### HU-01b · Bienvenida para nuevos miembros
+> Como miembro que acaba de ser agregado al sistema, quiero ver una pantalla de bienvenida al entrar por primera vez para confirmar que mi cuenta está correctamente configurada.
+
+**Flujo:** Cuando un miembro nuevo (cuyo perfil fue creado por el director) inicia sesión con Google por primera vez, el sistema lo redirige a `/bienvenida`. La pantalla muestra su foto, nombre y sección preguntando "¿Eres tú?". Al confirmar con el botón "Sí, soy yo → entrar", se marca `welcomed = true` en el perfil y el miembro accede normalmente a la app. Si hay un error en los datos, se le indica que contacte al director.
+
+**Campo de BD:** `profiles.welcomed` (boolean, default `false`). Se verifica en el callback de auth para redirigir a `/bienvenida`.
+
+**Archivos:** `app/(member)/bienvenida/page.tsx`, `lib/actions/profile.ts`
 
 ---
 
@@ -30,7 +42,11 @@ Descripción de todos los componentes y flujos de la aplicación desde el punto 
 ### HU-02 · Ver dashboard con resumen del día
 > Como director, quiero ver un resumen al entrar a la app para saber de un vistazo si hay un evento hoy o próximamente.
 
-**Flujo:** La pantalla `/dashboard` muestra el próximo evento (fecha, tipo, estado) y estadísticas generales del grupo. Si hay un evento abierto (con check-in activo) aparece con un indicador destacado.
+**Flujo:** La pantalla `/dashboard` muestra:
+- **Miembros activos** (count de `profiles` con `role='member'` y `active=true`)
+- **Multas pendientes** (suma de `attendances.fine_amount > 0`)
+- **Próximo evento** (siguiente evento con estado ≠ `closed`) con botón "Ver asistencia →"
+- Eventos del día actual (00:00:00 a 23:59:59 hora local)
 
 **Archivo:** `app/(director)/dashboard/page.tsx`
 
@@ -39,7 +55,7 @@ Descripción de todos los componentes y flujos de la aplicación desde el punto 
 ### HU-03 · Ver todos los eventos en lista
 > Como director, quiero ver todos los eventos organizados en "Próximos" y "Pasados" para saber qué hay planeado y qué ya ocurrió.
 
-**Flujo:** La página `/eventos` muestra dos secciones. Cada evento muestra nombre, tipo con chip de color, fecha y estado (Programado / Abierto / Cerrado). El director puede hacer clic en cualquier evento para ver su detalle.
+**Flujo:** La página `/eventos` muestra dos secciones. Cada evento muestra nombre, tipo con chip de color, fecha y estado (Programado / Abierto / Cerrado). El director puede hacer clic en cualquier evento para ver su detalle. En la cabecera aparece un ícono de recibo que lleva a `/eventos/multas` (configuración de montos de multa).
 
 **Archivo:** `app/(director)/eventos/page.tsx`, `components/director/EventsViewToggle.tsx`
 
@@ -61,10 +77,10 @@ Descripción de todos los componentes y flujos de la aplicación desde el punto 
 - Nombre del evento
 - Tipo (Ensayo, Presentación, Viaje, Medios, Seccional)
 - Fecha y hora de inicio
-- Hora de apertura del check-in (cuándo pueden empezar a marcar)
-- Secciones objetivo (si aplica para todo el grupo o solo algunas secciones)
+- Secciones objetivo (si aplica para todo el grupo o solo algunas secciones; vacío = todos)
+- Notas (información adicional, opcional)
 
-Al guardar, el evento queda en estado `scheduled` y todos los miembros de las secciones target lo verán en su lista.
+Al guardar, el evento queda en estado `scheduled`. La ventana de check-in se calcula automáticamente: `checkin_opens_at = starts_at - 60 minutos` (hardcodeado). Todos los miembros de las secciones target lo verán en su lista.
 
 **Archivos:** `app/(director)/eventos/nuevo/page.tsx`, `components/director/EventForm.tsx`
 
@@ -73,22 +89,31 @@ Al guardar, el evento queda en estado `scheduled` y todos los miembros de las se
 ### HU-06 · Ver detalle de un evento y lista de asistentes
 > Como director, quiero ver quién asistió a un evento específico para saber el estado de asistencia de cada miembro.
 
-**Flujo:** Al hacer clic en un evento se abre `/eventos/[id]`. Muestra la cabecera con nombre, tipo, fecha y estado. Debajo, la lista de todos los miembros que pertenecen a las secciones target con su estado: Presente (verde), Tardanza (amarillo) o Falta (rojo). Para los registros con foto de check-in, aparece una miniatura (40×40). Para los registros presentes o tardanzas, aparece la hora exacta del check-in.
+**Flujo:** Al hacer clic en un evento se abre `/eventos/[id]`. Muestra la cabecera con nombre, tipo, fecha y estado. Debajo, la lista de todos los miembros que pertenecen a las secciones target con su estado: Presente (verde), Tardanza (amarillo), Falta (rojo) o **Pendiente** (gris, si aún no marcaron). Para los registros con foto de check-in, aparece una miniatura (40×40). Para los registros presentes o tardanzas, aparece la hora exacta del check-in.
 
 En eventos **cerrados**: los miembros desactivados aparecen al final de la lista con un badge "Inactivo".
+
+El encabezado muestra contadores: Presentes, Tardanzas, Faltas, Pendientes.
 
 **Archivos:** `app/(director)/eventos/[id]/page.tsx`, `components/director/AttendancePhoto.tsx`
 
 ---
 
-### HU-07 · Abrir y cerrar el check-in de un evento
-> Como director, quiero controlar manualmente cuándo los miembros pueden marcar asistencia para gestionar eventos con flexibilidad.
+### HU-07 · Estado automático del check-in y cierre manual
+> Como director, quiero que el check-in se abra automáticamente a la hora configurada y poder cerrarlo manualmente cuando lo necesite.
 
-**Flujo:** En el detalle del evento aparecen botones de acción según el estado:
-- Estado `scheduled`: botón "Abrir check-in" → cambia a `open`
-- Estado `open`: botón "Cerrar y registrar ausentes" → llama a `close_event()` que marca como `absent` a quienes no marcaron y calcula sus multas
+**Flujo:** El check-in se gestiona de forma automática. En el detalle del evento (`EventControls`) se muestra un indicador de estado según el momento actual:
+- Antes de `checkin_opens_at`: chip gris "Check-in abre a las HH:MM" (no hay botón de apertura manual)
+- Durante la ventana (`checkin_opens_at` → `starts_at + 1 hora`): chip verde "Check-in abierto automáticamente"
+- Ventana expirada pero evento sin cerrar: chip ámbar "Ventana de check-in cerrada"
 
-**Archivo:** `components/director/EventControls.tsx`
+En cualquier estado no cerrado siempre aparece el botón **"Cerrar y registrar ausentes"** → llama a `close_event()` que marca como `absent` a quienes no marcaron y calcula sus multas.
+
+Adicionalmente aparece el botón **"🔔 Notificar miembros"** que envía una push notification a los miembros de las secciones objetivo con un enlace a `/home`.
+
+> El botón "Abrir check-in" manual fue eliminado. La transición `scheduled → open` la hace el sistema automáticamente.
+
+**Archivos:** `components/director/EventControls.tsx`, `app/api/push/notify/route.ts`
 
 ---
 
@@ -101,21 +126,29 @@ En eventos **cerrados**: los miembros desactivados aparecen al final de la lista
 
 ---
 
-### HU-09 · Ver lista de miembros
-> Como director, quiero ver todos los miembros del grupo con su foto, sección e instrumento para tener un directorio del grupo.
+### HU-09 · Ver lista de miembros y agregar uno nuevo
+> Como director, quiero ver todos los miembros del grupo con su foto, sección e instrumento para tener un directorio del grupo, y poder agregar miembros nuevos.
 
 **Flujo:** La página `/miembros` muestra todos los miembros activos con avatar, nombre, sección e instrumento. Los miembros inactivos aparecen al final con un badge "Inactivo". Cada miembro es clickeable para ver su detalle.
 
-**Archivos:** `app/(director)/miembros/page.tsx`, `components/director/MembersList.tsx`
+Desde la cabecera de `/miembros`, el botón "+" lleva a `/miembros/nuevo` donde el director completa un formulario con:
+- Nombre completo
+- Correo electrónico (con el que el miembro iniciará sesión con Google)
+- Sección
+- Instrumento (opcional)
+
+Al guardar, el perfil queda creado con `welcomed = false` y el miembro podrá iniciar sesión con Google usando ese correo (verá la pantalla de bienvenida la primera vez).
+
+**Archivos:** `app/(director)/miembros/page.tsx`, `components/director/MembersList.tsx`, `app/(director)/miembros/nuevo/page.tsx`, `lib/actions/members.ts`
 
 ---
 
 ### HU-10 · Ver detalle y editar un miembro
 > Como director, quiero ver el perfil completo de un miembro y poder editar su sección o instrumento, ya que los miembros no pueden modificar esos campos por sí solos.
 
-**Flujo:** Al hacer clic en un miembro en `/miembros` se abre `/miembros/[id]`. Muestra foto, nombre, sección, instrumento y el historial de asistencia del miembro (con miniatura de foto por cada registro). El director puede editar nombre, sección e instrumento.
+**Flujo:** Al hacer clic en un miembro en `/miembros` se abre `/miembros/[id]`. Muestra foto, nombre, sección, instrumento, estado activo/inactivo, estadísticas de asistencia (% asistencia, presentes, tardanzas, faltas, multas) y el historial de los últimos 20 eventos con miniatura de foto por cada registro. El director puede ir a `/miembros/[id]/editar` para editar nombre, sección, instrumento y estado activo/inactivo. También hay una zona de peligro para eliminar al miembro permanentemente.
 
-**Archivo:** `app/(director)/miembros/[id]/page.tsx`
+**Archivo:** `app/(director)/miembros/[id]/page.tsx`, `app/(director)/miembros/[id]/editar/page.tsx`
 
 ---
 
@@ -128,7 +161,9 @@ En eventos **cerrados**: los miembros desactivados aparecen al final de la lista
 
 Los miembros desactivados no aparecen en los eventos **nuevos** que se creen después de desactivarlos. En eventos ya cerrados aparecen al final de la lista con badge "Inactivo".
 
-**Archivos:** `components/director/MembersList.tsx`, `lib/actions/members.ts`
+Si un miembro inactivo intenta iniciar sesión con Google, el sistema detecta `active = false`, cierra su sesión automáticamente y lo redirige a `/login?error=inactive`.
+
+**Archivos:** `components/director/MembersList.tsx`, `lib/actions/members.ts`, `app/api/auth/callback/route.ts`
 
 ---
 
@@ -151,6 +186,7 @@ Los miembros desactivados no aparecen en los eventos **nuevos** que se creen des
   - Plata: fondo gris
   - Bronce: fondo naranja
   - Cada card muestra foto, nombre, sección, conteo de presentes/tardanzas/faltas y porcentaje
+  - Código de color del porcentaje: verde (≥80%), amarillo (60-79%), rojo (<60%)
 - El resto de miembros en un `<details>` colapsado "Ver todos"
 
 Cada miembro es clickeable para ir a su reporte individual.
@@ -193,14 +229,21 @@ El filtro activo se refleja en la URL con `?periodo=week` o `?desde=2026-06-01&h
 
 **Flujo:** En `/reportes/miembro/[id]`, cada fila de asistencia con `fine_amount > 0` muestra el monto y un botón "Saldar". Al hacer clic, el sistema actualiza `fine_amount = 0` para esa asistencia y recarga la página. El botón desaparece al saldar.
 
+> **Nota técnica:** El trigger `calculate_fine` solo recalcula `fine_amount` en INSERT o cuando cambia el `status`. Un UPDATE que solo cambia `fine_amount` no es sobreescrito por el trigger, lo que permite saldar correctamente.
+
 **Archivos:** `app/(director)/reportes/miembro/[id]/page.tsx`, `lib/actions/fines.ts`
 
 ---
 
 ### HU-17 · Ver multas agrupadas por evento
-> Como director, quiero ver en `/reportes/multas` (o `/eventos/multas`) todas las multas pendientes agrupadas por evento para saber cuánto debe cobrar en cada actividad.
+> Como director, quiero ver en `/reportes/multas` todas las multas pendientes agrupadas por evento para saber cuánto debe cobrar en cada actividad.
 
-**Flujo:** La página `/eventos/multas` muestra la configuración de montos de multa por tipo de evento. La ruta `/reportes/multas` muestra multas pendientes agrupadas por evento. Cada evento es un bloque expandible (`<details>`) que muestra: nombre del evento, fecha, tipo, total del evento y al expandir la lista de miembros deudores con nombre, sección y monto. Los eventos se ordenan del más reciente al más antiguo.
+**Flujo:** La página `/reportes/multas` (accesible desde el ícono de recibo en `/eventos`) muestra:
+- Total pendiente del grupo
+- Eventos con multas agrupados en bloques expandibles (`<details>`)
+- Cada bloque muestra: nombre del evento, tipo, fecha, total del evento
+- Al expandir: lista de miembros deudores con nombre, sección y monto
+- Los eventos se ordenan del más reciente al más antiguo
 
 **Archivo:** `app/(director)/reportes/multas/page.tsx`
 
@@ -209,7 +252,7 @@ El filtro activo se refleja en la URL con `?periodo=week` o `?desde=2026-06-01&h
 ### HU-18 · Configurar montos de multas por tipo de evento
 > Como director, quiero poder ajustar cuánto se cobra por tardanza o por falta en cada tipo de evento para adaptarlo a las reglas del grupo.
 
-**Flujo:** La sección de configuración de multas está en `/eventos/multas` (accesible desde el botón de recibo en la cabecera de `/eventos`). Muestra una lista de tipos de evento con sus montos de multa por tardanza y por falta. El director puede editar los valores.
+**Flujo:** La configuración de multas está en `/eventos/multas` (accesible desde el ícono de recibo en la cabecera de `/eventos`). Muestra una lista de tipos de evento con sus montos actuales de multa por tardanza (`fine_late`) y por falta (`fine_absent`). El director puede editar los valores y guardar.
 
 **Archivos:** `app/(director)/eventos/multas/page.tsx`, `components/director/FineConfigForm.tsx`
 
@@ -217,12 +260,19 @@ El filtro activo se refleja en la URL con `?periodo=week` o `?desde=2026-06-01&h
 
 ## Flujos del Miembro
 
-### HU-19 · Ver próximos eventos y botón de check-in
+### HU-19 · Ver próximos eventos, check-in y ranking de multas
 > Como miembro, quiero ver los eventos que se aproximan y poder marcar mi asistencia cuando llegue el momento para no olvidarme ni llegar tarde.
 
-**Flujo:** La pantalla `/home` muestra los próximos eventos del grupo filtrados a las secciones del miembro. Para cada evento en estado `open` aparece el botón de check-in. Al hacer clic, la cámara se abre para tomar una foto obligatoria como evidencia del check-in. La app sube la foto y registra la asistencia con el estado correspondiente (presente o tardanza según la hora).
+**Flujo:** La pantalla `/home` muestra:
+- El total de mis multas acumuladas pendientes
+- El podio de 🥇🥈🥉 con los **3 miembros con menos multas** del grupo (ranking gamificado)
+- Los próximos eventos del grupo filtrados a las secciones del miembro
 
-**Archivos:** `app/(member)/home/page.tsx`, `components/member/CheckInButton.tsx`
+Para cada evento cuya ventana de check-in está activa (`checkin_opens_at` ≤ ahora ≤ `starts_at + 1 hora`) aparece el botón de check-in. Al hacer clic, la cámara se abre para tomar una foto obligatoria como evidencia. La app sube la foto y registra la asistencia con el estado correspondiente.
+
+El botón de check-in desaparece una vez marcado.
+
+**Archivos:** `app/(member)/home/page.tsx`, `components/member/CheckInButton.tsx`, `lib/actions/rankings.ts`
 
 ---
 
@@ -233,7 +283,7 @@ El filtro activo se refleja en la URL con `?periodo=week` o `?desde=2026-06-01&h
 1. Se muestra un botón para abrir la cámara (o galería)
 2. El miembro toma o selecciona la foto
 3. Aparece una previsualización de la foto
-4. Al confirmar, la app sube la foto a Supabase Storage y registra la asistencia
+4. Al confirmar, la app sube la foto a Supabase Storage (`attendance-photos/`) y registra la asistencia
 5. El estado se calcula automáticamente:
    - Llegó antes de la hora de inicio (con tolerancia de 1 minuto) → Presente
    - Llegó 1-15 minutos tarde → Tardanza
@@ -247,13 +297,13 @@ El filtro activo se refleja en la URL con `?periodo=week` o `?desde=2026-06-01&h
 ### HU-21 · Ver historial de eventos propios en lista o calendario
 > Como miembro, quiero ver todos mis eventos pasados y futuros en una lista organizada, y poder cambiar a vista de calendario para orientarme mejor en el tiempo.
 
-**Flujo:** La página `/mis-eventos` muestra dos secciones:
+**Flujo:** La página `/mis-eventos` muestra en la parte superior un resumen de asistencia (% asistencia, Presentes, Tardanzas, Faltas, Multas). Hay un toggle "Lista | Calendario":
+
+**Vista Calendario** (default): calendario mensual con puntos de color por tipo de evento, navegable con ← →.
+
+**Vista Lista**: dos secciones:
 - **Próximos:** eventos en estado `scheduled` u `open` de mis secciones
 - **Pasados:** eventos cerrados con mi estado de asistencia (Presente / Tardanza / Falta)
-
-En la parte superior hay un toggle "Lista | Calendario" que funciona igual que en el panel del director, pero mostrando solo los eventos de las secciones del miembro.
-
-Los eventos pasados con asistencia muestran el porcentaje de asistencia general en las estadísticas.
 
 **Archivos:** `app/(member)/mis-eventos/page.tsx`, `components/member/MemberEventsToggle.tsx`, `components/director/EventsCalendarView.tsx` (reutilizado)
 
@@ -262,7 +312,10 @@ Los eventos pasados con asistencia muestran el porcentaje de asistencia general 
 ### HU-22 · Ver mis multas acumuladas
 > Como miembro, quiero ver cuánto debo en total y el desglose por evento para saber cuánto tengo que pagar al director.
 
-**Flujo:** La página `/mis-multas` muestra el total acumulado de multas pendientes y una lista desglosada por evento con el monto de cada una.
+**Flujo:** La página `/mis-multas` muestra:
+- **Total acumulado** en rojo (si hay multas) o verde (si no hay)
+- Si el total es 0: mensaje motivacional "¡Sin multas! Sigue así."
+- Lista desglosada de cada multa con: nombre del evento, tipo, fecha, estado de asistencia (Tardanza/Falta) y monto
 
 **Archivo:** `app/(member)/mis-multas/page.tsx`
 
@@ -275,9 +328,9 @@ Los eventos pasados con asistencia muestran el porcentaje de asistencia general 
 - El avatar actual con un badge de cámara encima para indicar que es clickeable
 - Al hacer clic en el avatar, se abre el selector de archivos (cámara o galería)
 - La foto seleccionada se previsualiza inmediatamente
-- Campo editable para el nombre completo
-- Sección e instrumento mostrados como texto de solo lectura (el director los edita)
-- Botón "Guardar" que sube la foto a Supabase Storage y actualiza el perfil
+- Campo editable para el nombre completo — **solo disponible la primera vez** (flag `profiles.name_edited`). Una vez guardado el cambio, el campo pasa a ser de solo lectura con el mensaje "Ya usaste tu cambio de nombre. Solo el director puede modificarlo de nuevo."
+- Sección e instrumento mostrados como texto de solo lectura (el director los edita desde `/miembros/[id]/editar`)
+- Botón "Guardar" que sube la foto a Supabase Storage (`profile-photos/`) y actualiza el perfil
 
 **Archivo:** `components/member/ProfileForm.tsx`
 
@@ -343,12 +396,13 @@ La sección activa se resalta en violeta.
 > Como sistema, cuando el director cierra un evento, quiero que se calculen automáticamente las multas de cada miembro según su estado de asistencia para que el director no tenga que hacer ese cálculo manualmente.
 
 **Reglas:**
-- Presente: sin multa
+- Presente: sin multa (`fine_amount = 0`)
 - Tardanza: multa configurada en el tipo de evento (`fine_late`)
 - Falta (marcada o registrada automáticamente al cerrar): multa configurada (`fine_absent`)
 - El cálculo lo hace el trigger `calculate_fine` en PostgreSQL al insertar o actualizar una asistencia
+- El trigger **no recalcula** si el UPDATE no cambia el campo `status` (esto permite saldar multas sin que el trigger las restaure)
 
-**Archivos:** `supabase/migrations/003_triggers.sql`
+**Archivos:** `supabase/migrations/003_triggers.sql`, `supabase/migrations/012_fix_settle_fine_trigger.sql`
 
 ---
 
@@ -364,8 +418,39 @@ La sección activa se resalta en violeta.
 ### HU-30 · Eventos seccionales: solo aplica a algunas secciones
 > Como miembro de "Vientos", si hay un ensayo seccional solo para percusión, quiero ver el evento pero saber claramente que no aplica para mí para no confundirme.
 
-**Flujo:** Cada evento tiene un campo `target_sections`. Si el miembro no pertenece a ninguna de esas secciones, ve el evento con un chip "No aplica para tu sección" y no puede hacer check-in. Si pertenece a las secciones objetivo, puede hacer check-in normalmente.
-
-Los eventos seccionales no generan falta para quienes no aplican.
+**Flujo:** Cada evento tiene un campo `target_sections` (array). Si está vacío o es `null` → aplica a todos. Si el miembro no pertenece a ninguna de las secciones listadas, ve el evento con un chip "No aplica para tu sección" y no puede hacer check-in. Los eventos seccionales no generan falta para quienes no aplican.
 
 **Archivos:** `app/(member)/home/page.tsx`, `components/member/CheckInButton.tsx`
+
+---
+
+### ~~HU-31 · Check-in desde kiosco público~~ *(eliminado)*
+> Esta funcionalidad fue removida. La ruta raíz `/` ahora solo redirige: sin sesión → `/login`, director → `/dashboard`, miembro → `/home`. El check-in se hace únicamente desde `/home` con sesión iniciada.
+
+---
+
+### HU-32 · Push notifications: suscripción y recepción
+> Como miembro, quiero recibir una notificación push en mi dispositivo cuando el check-in de un evento se abre para no perder el momento de marcar asistencia.
+
+**Flujo:** Al entrar a `/home`, el componente `PushSubscriber` solicita permiso de notificaciones al navegador. Si el miembro acepta, la suscripción Web Push se guarda en la base de datos.
+
+Cuando el director presiona "🔔 Notificar miembros" en el detalle del evento, el sistema envía una push notification a todos los miembros activos de las secciones objetivo con el mensaje: `"[Título del evento] comienza a las HH:MM. ¡Marca tu asistencia!"` y un link a `/home`.
+
+Las notificaciones también se envían automáticamente vía cron (ver HU-33) cuando se detecta que la ventana de check-in acaba de abrirse. El flag `events.notified = true` evita reenvíos.
+
+**Archivos:** `components/PushSubscriber.tsx`, `app/api/push/subscribe/route.ts`, `app/api/push/notify/route.ts`, `lib/webpush.ts`
+
+---
+
+### HU-33 · Auto-apertura y auto-cierre de eventos por cron
+> Como sistema, quiero que los eventos se abran y cierren automáticamente según los horarios configurados para que el director no tenga que hacerlo manualmente.
+
+**Flujo:** Un cron job (`/api/cron/close-events`, protegido por `CRON_SECRET`) se ejecuta periódicamente y realiza dos acciones:
+
+1. **Auto-apertura:** Eventos en estado `scheduled` cuyo `checkin_opens_at` ya pasó y cuyo `starts_at` fue hace menos de 1 hora → cambian a estado `open` y se envía push notification a los miembros (solo una vez, controlado por el flag `notified`).
+
+2. **Auto-cierre:** Eventos no cerrados cuyo `starts_at` fue hace más de 1 hora → se llama a `close_event()` que registra ausentes y calcula multas.
+
+La función `autoCloseExpiredEvents()` también se llama en cada carga de `/home` y `/dashboard` para garantizar consistencia aunque el cron no haya corrido recientemente.
+
+**Archivos:** `app/api/cron/close-events/route.ts`, `lib/actions/events.ts`

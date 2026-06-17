@@ -6,10 +6,11 @@ import { ChevronLeft } from 'lucide-react'
 
 export default async function MultasPage() {
   const supabase = await createClient()
+  await supabase.auth.getUser()
 
   const { data: fines } = await supabase
     .from('attendances')
-    .select('event_id, user_id, fine_amount, status, events(id, title, starts_at, event_types(name)), profiles(full_name, photo_url, section)')
+    .select('event_id, user_id, fine_amount, status, events(id, title, starts_at, event_types(name)), profiles!attendances_user_id_fkey(full_name, photo_url, section)')
     .gt('fine_amount', 0)
     .order('created_at', { ascending: false })
 
