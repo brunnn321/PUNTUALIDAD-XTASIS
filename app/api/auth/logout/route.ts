@@ -1,8 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { logSupabaseError } from '@/lib/supabase/query-helpers'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const requestId = request.headers.get('x-request-id') ?? undefined
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  logSupabaseError('auth/logout: signOut', error, { requestId })
   return NextResponse.redirect(new URL('/login', request.url))
 }

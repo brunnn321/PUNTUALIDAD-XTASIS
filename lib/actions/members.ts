@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { logSupabaseError } from '@/lib/supabase/query-helpers'
 import { redirect } from 'next/navigation'
 
 export async function createMember(_: unknown, formData: FormData) {
@@ -26,10 +27,11 @@ export async function createMember(_: unknown, formData: FormData) {
     if (error.message.includes('already been registered')) {
       return { error: 'Ya existe un miembro con ese correo.' }
     }
+    logSupabaseError('members: createMember createUser', error)
     return { error: error.message }
   }
 
-  await supabase
+  const { error: upsertError } = await supabase
     .from('profiles')
     .upsert({
       id: data.user.id,
@@ -41,12 +43,15 @@ export async function createMember(_: unknown, formData: FormData) {
       welcomed: false,
     })
 
+  logSupabaseError('members: createMember upsert profile', upsertError, { userId: data.user.id })
+
   redirect('/miembros')
 }
 
 export async function deleteMember(id: string) {
   const supabase = createAdminClient()
-  await supabase.auth.admin.deleteUser(id)
+  const { error } = await supabase.auth.admin.deleteUser(id)
+  logSupabaseError('members: deleteMember', error, { userId: id })
   redirect('/miembros')
 }
 
@@ -54,14 +59,16 @@ export async function deleteMember(id: string) {
 export async function deleteMembersByIds(ids: string[]) {
   const supabase = createAdminClient()
   for (const id of ids) {
-    await supabase.auth.admin.deleteUser(id)
+    const { error } = await supabase.auth.admin.deleteUser(id)
+    logSupabaseError('members: deleteMembersByIds', error, { userId: id })
   }
 }
 
 // Activar o desactivar múltiples miembros desde selección en lista
 export async function setMembersActive(ids: string[], active: boolean) {
   const supabase = await createClient()
-  await supabase.from('profiles').update({ active }).in('id', ids)
+  const { error } = await supabase.from('profiles').update({ active }).in('id', ids)
+  logSupabaseError('members: setMembersActive', error, { count: ids.length, active })
 }
 
 export async function updateMember(_: unknown, formData: FormData) {
@@ -86,7 +93,9 @@ export async function updateMember(_: unknown, formData: FormData) {
     })
     .eq('id', id)
 
-  if (error) return { error: error.message }
+  if (logSupabaseError('members: updateMember', error, { userId: id })) {
+    return { error: error!.message }
+  }
 
   redirect(`/miembros/${id}`)
 }

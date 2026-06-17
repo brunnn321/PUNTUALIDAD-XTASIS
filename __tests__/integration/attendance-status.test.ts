@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
-import { db, EVENT_TYPES, createTestUser, deleteTestUsers, createTestEvent, cleanupEvents } from './setup'
+import { db, getEventTypes, type EventTypes, createTestUser, deleteTestUsers, createTestEvent, cleanupEvents } from './setup'
 
 // Fixed reference time — timezone independent
 const EVENT_START = '2025-06-15T10:00:00Z'
 
 let directorId: string
+let EVENT_TYPES: EventTypes
 const createdEventIds: string[] = []
 
 beforeAll(async () => {
   directorId = await createTestUser(`dir-status-${Date.now()}@test.com`, 'director')
+  EVENT_TYPES = await getEventTypes()
 })
 
 afterEach(async () => {

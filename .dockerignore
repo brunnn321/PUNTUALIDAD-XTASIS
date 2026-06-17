@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+!.env.local.example
+playwright-report
+test-results
+tests
+__tests__
+documentos
+.claude
+*.md
+npm-debug.log*
