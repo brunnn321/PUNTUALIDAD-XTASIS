@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=inactive`)
   }
 
-  const dest = profile?.role === 'director' ? '/dashboard' : '/'
+  const dest = profile?.role === 'director' ? '/dashboard' : '/home'
   logInfo('auth/callback: redirecting after login', { userId: user.id, dest, requestId })
   return NextResponse.redirect(`${origin}${dest}`)
 }

@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDateTime, formatCurrency, SECTION_LABELS, EVENT_STATUS_CONFIG } from '@/lib/utils'
 import { autoCloseExpiredEvents } from '@/lib/actions/events'
 import CheckInButton from '@/components/member/CheckInButton'
+import AutoRefreshOnOpen from '@/components/member/AutoRefreshOnOpen'
 import AttendancePhoto from '@/components/director/AttendancePhoto'
 import { getLeastFinesRanking } from '@/lib/actions/rankings'
+import LogoutButton from '@/components/LogoutButton'
 import type { SectionName, EventWithType } from '@/lib/supabase/types'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -57,6 +59,26 @@ export default async function HomePage() {
     if (!event.target_sections || event.target_sections.length === 0) return true
     return event.target_sections.includes(profile?.section as SectionName)
   }
+
+  const nowForAutoOpen = new Date()
+
+  // Eventos que aún no abrieron y aplican al miembro sin asistencia — para el auto-refresh
+  const upcomingOpensAt = (upcomingEvents ?? [])
+    .filter(event => {
+      if (!appliesToMe(event)) return false
+      if (myAttendances?.find(a => a.event_id === event.id)) return false
+      return new Date(event.checkin_opens_at) > nowForAutoOpen
+    })
+    .map(event => event.checkin_opens_at)
+
+  const pendingOpenEvents = (upcomingEvents ?? []).filter(event => {
+    if (!appliesToMe(event)) return false
+    if (myAttendances?.find(a => a.event_id === event.id)) return false
+    const opensAt = new Date(event.checkin_opens_at)
+    const closesAt = new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000)
+    return nowForAutoOpen >= opensAt && nowForAutoOpen <= closesAt
+  })
+  const autoOpenEventId = pendingOpenEvents.length === 1 ? pendingOpenEvents[0].id : null
 
   return (
     <div className="p-4 space-y-6 max-w-lg mx-auto">
@@ -156,6 +178,7 @@ export default async function HomePage() {
                     eventId={event.id}
                     isOpen={isOpen}
                     opensAt={event.checkin_opens_at}
+                    autoOpen={autoOpenEventId === event.id}
                   />
                 )}
 
@@ -176,6 +199,9 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      <LogoutButton />
+      <AutoRefreshOnOpen opensAtList={upcomingOpensAt} />
     </div>
   )
 }

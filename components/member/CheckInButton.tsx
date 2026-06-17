@@ -11,10 +11,11 @@ interface Props {
   eventId: string
   isOpen: boolean
   opensAt: string
+  autoOpen?: boolean
 }
 
-export default function CheckInButton({ eventId, isOpen, opensAt }: Props) {
-  const [showCamera, setShowCamera] = useState(false)
+export default function CheckInButton({ eventId, isOpen, opensAt, autoOpen = false }: Props) {
+  const [showCamera, setShowCamera] = useState(autoOpen && isOpen)
   const [galleryPhoto, setGalleryPhoto] = useState<string | null>(null)
   const [submitting, startSubmit] = useTransition()
   const [done, setDone] = useState(false)

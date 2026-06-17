@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDateTime, formatCurrency } from '@/lib/utils'
 import { Calendar, Users, DollarSign, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import LogoutButton from '@/components/LogoutButton'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -140,6 +141,8 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </section>
+
+      <LogoutButton />
     </div>
   )
 }
