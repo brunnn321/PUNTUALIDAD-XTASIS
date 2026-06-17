@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
-import { db, EVENT_TYPES, createTestUser, deleteTestUsers, createTestEvent, cleanupEvents } from './setup'
+import { db, getEventTypes, type EventTypes, createTestUser, deleteTestUsers, createTestEvent, cleanupEvents } from './setup'
 
 const EVENT_START = '2025-06-15T10:00:00Z'
 
 let directorId: string
 let memberId: string
+let EVENT_TYPES: EventTypes
 
 const createdEventIds: string[] = []
 
@@ -12,6 +13,7 @@ beforeAll(async () => {
   const ts = Date.now()
   directorId = await createTestUser(`dir-fines-${ts}@test.com`, 'director')
   memberId   = await createTestUser(`member-fines-${ts}@test.com`, 'member', 'vientos')
+  EVENT_TYPES = await getEventTypes()
 })
 
 afterEach(async () => {

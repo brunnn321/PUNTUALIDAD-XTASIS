@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/
+
 # next.js
 /.next/
 /out/
@@ -37,6 +42,7 @@ yarn-error.log*
 # Claude Code (archivos internos del editor)
 AGENTS.md
 CLAUDE.md
+.claude/
 
 # vercel
 .vercel

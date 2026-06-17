@@ -9,11 +9,23 @@ export const db = createClient(LOCAL_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-// Event type IDs seeded by migration 001_schema.sql
-export const EVENT_TYPES = {
-  ensayo:       { id: 'e281e291-cea6-47d0-8609-9a15a3ddc0fd', fine_absent: 10000, fine_late: 5000 },
-  presentacion: { id: 'a3bdd2cb-d341-43cf-afcd-a9624a5c0d35', fine_absent: 50000, fine_late: 25000 },
-} as const
+export type EventTypeRow = { id: string; fine_absent: number; fine_late: number }
+export type EventTypes = { ensayo: EventTypeRow; presentacion: EventTypeRow }
+
+export async function getEventTypes(): Promise<EventTypes> {
+  const { data, error } = await db
+    .from('event_types')
+    .select('id, name, fine_absent, fine_late')
+    .in('name', ['Ensayo', 'Presentación'])
+
+  if (error || !data?.length) throw new Error(`getEventTypes failed: ${error?.message}`)
+
+  const byName = Object.fromEntries(data.map((r) => [r.name, r]))
+  return {
+    ensayo:       { id: byName['Ensayo'].id,        fine_absent: byName['Ensayo'].fine_absent,        fine_late: byName['Ensayo'].fine_late },
+    presentacion: { id: byName['Presentación'].id,  fine_absent: byName['Presentación'].fine_absent,  fine_late: byName['Presentación'].fine_late },
+  }
+}
 
 export type TestSection = 'vientos' | 'voces' | 'bailarines' | 'armonia' | 'percusion' | 'staff'
 

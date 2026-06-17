@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import {
-  db, EVENT_TYPES, createTestUser, deleteTestUsers, deactivateUser,
+  db, getEventTypes, type EventTypes, createTestUser, deleteTestUsers, deactivateUser,
   createTestEvent, cleanupEvents, type TestSection,
 } from './setup'
 
 const EVENT_START = '2025-06-15T10:00:00Z'
 
 let directorId: string
+let EVENT_TYPES: EventTypes
 let vientos1Id: string
 let vientos2Id: string
 let vocesId: string
@@ -24,6 +25,7 @@ beforeAll(async () => {
     return id
   }
 
+  EVENT_TYPES = await getEventTypes()
   directorId = await createTestUser(`dir-close-${ts}@test.com`, 'director')
   createdUserIds.push(directorId)
 
