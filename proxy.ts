@@ -51,7 +51,7 @@ export async function proxy(request: NextRequest) {
         .eq('id', user.id)
         .single()
 
-      const dest = profile?.role === 'director' ? '/dashboard' : '/'
+      const dest = profile?.role === 'director' ? '/dashboard' : '/home'
       return redirectTo(new URL(dest, request.url), requestId)
     }
     return supabaseResponse
