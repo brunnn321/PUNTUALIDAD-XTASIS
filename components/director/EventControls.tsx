@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { EventStatus } from '@/lib/supabase/types'
@@ -16,7 +16,9 @@ export default function EventControls({ eventId, status, checkinOpensAt, startsA
   const [loading, setLoading] = useState(false)
   const [notifying, setNotifying] = useState(false)
   const [notifyMsg, setNotifyMsg] = useState('')
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  useEffect(() => { setMounted(true) }, [])
 
   const now = Date.now()
   const opensAt = new Date(checkinOpensAt).getTime()
@@ -58,7 +60,7 @@ export default function EventControls({ eventId, status, checkinOpensAt, startsA
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" data-hydrated={mounted ? 'true' : undefined}>
       <div className="flex gap-2">
         {isTimeOpen ? (
           <div className="flex-1 bg-green-100 text-green-700 rounded-xl px-4 py-2.5 text-sm font-medium text-center">

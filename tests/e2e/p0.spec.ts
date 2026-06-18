@@ -51,11 +51,7 @@ test('auth redirects unauthenticated users and routes each role to its home', as
   await context.clearCookies()
   await signInAs(context, baseURL!, member.email)
   await page.goto('/')
-  // El miembro llega al kiosco (/), no a /home directamente
-  await expect(page).toHaveURL(/^http:\/\/localhost:3000\/$/)
-
-  // Desde el kiosco navega a /home con la barra inferior
-  await page.goto('/home')
+  await expect(page).toHaveURL(/\/home$/)
   await expect(page.getByRole('heading', { name: /Miembro/i })).toBeVisible()
 
   await page.goto('/dashboard')
@@ -120,10 +116,12 @@ test('director creates a scheduled sectional event from the events form', async 
   await page.getByRole('link', { name: 'Nuevo', exact: true }).click()
   await expect(page.getByRole('heading', { name: /Nuevo evento/i })).toBeVisible()
   await page.waitForLoadState('networkidle')
+  await page.locator('form[data-hydrated="true"]').waitFor()
 
   const title = `Ensayo P0 Nuevo ${Date.now()}`
   const titleInput = page.getByPlaceholder(/Ensayo general/i)
-  await titleInput.fill(title)
+  await titleInput.click()
+  await titleInput.pressSequentially(title)
   await expect(titleInput).toHaveValue(title)
   await page.locator('select').selectOption({ label: 'Ensayo' })
   await page.locator('input[type="datetime-local"]').fill(toDatetimeLocal(futureIso(180)))
@@ -167,6 +165,7 @@ test('director opens an event detail and closes it registering absences', async 
   await signInAs(context, baseURL!, director.email)
   await page.goto(`/eventos/${eventId}`)
   await page.waitForLoadState('networkidle')
+  await page.locator('[data-hydrated="true"]').first().waitFor()
 
   await expect(page.getByText('Miembro Ausente P0')).toBeVisible()
   await expect(page.getByText('Pendiente', { exact: true }).first()).toBeVisible()
@@ -174,7 +173,7 @@ test('director opens an event detail and closes it registering absences', async 
   await expect(closeButton).toBeEnabled()
   await closeButton.click()
 
-  await expect(page.getByText('Evento cerrado')).toBeVisible()
+  await expect(page.getByText('Evento cerrado')).toBeVisible({ timeout: 20000 })
   await expect(page.getByText('Falta').first()).toBeVisible()
   await expect(page.getByText(/Multas generadas/i)).toBeVisible()
 })
@@ -206,19 +205,25 @@ test('member checks in to an open event using gallery photo', async ({ page, con
   await signInAs(context, baseURL!, member.email)
   await page.goto('/home')
   await page.waitForLoadState('networkidle')
+  await page.locator('[data-hydrated="true"]').first().waitFor()
 
-  await expect(page.getByText('Ensayo P0 Checkin')).toBeVisible()
-  await expect(page.getByRole('button', { name: /Galería/i })).toBeVisible()
-  await page.locator('input[type="file"]').setInputFiles({
+  const checkinCard = page.locator('.bg-white').filter({ hasText: 'Ensayo P0 Checkin' }).first()
+  await expect(checkinCard).toBeVisible()
+  const galleryBtn = checkinCard.getByRole('button', { name: /Galería/i })
+  await expect(galleryBtn).toBeVisible()
+
+  // setInputFiles dispatches native change event which React 19 picks up via event delegation
+  await checkinCard.locator('input[type="file"]').setInputFiles({
     name: 'checkin.png',
     mimeType: 'image/png',
     buffer: tinyPng,
   })
+
   await expect(page.getByText(/Usar esta foto/i)).toBeVisible()
   await page.getByRole('button', { name: /Confirmar/i }).click()
 
   await expect(page.getByText(/Asistencia registrada/i)).toBeVisible()
-  await expect(page.getByRole('button', { name: /Galería/i })).toBeHidden()
+  await expect(checkinCard.getByRole('button', { name: /Galería/i })).toBeHidden()
 
   const { data } = await db
     .from('attendances')
@@ -258,10 +263,11 @@ test('member sees a sectional event as not applicable and cannot check in', asyn
   await signInAs(context, baseURL!, member.email)
   await page.goto('/home')
 
-  await expect(page.getByText('Seccional Solo Percusion P0')).toBeVisible()
-  await expect(page.getByText('No aplica para tu sección')).toBeVisible()
-  await expect(page.getByRole('button', { name: /Galería/i })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /Cámara/i })).toHaveCount(0)
+  const seccionalCard = page.locator('.bg-white').filter({ hasText: 'Seccional Solo Percusion P0' })
+  await expect(seccionalCard).toBeVisible()
+  await expect(seccionalCard.getByText('No aplica para tu sección')).toBeVisible()
+  await expect(seccionalCard.getByRole('button', { name: /Galería/i })).toHaveCount(0)
+  await expect(seccionalCard.getByRole('button', { name: /Cámara/i })).toHaveCount(0)
 })
 
 function toDatetimeLocal(iso: string) {

@@ -3,6 +3,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: ['127.0.0.1'],
   experimental: {
     serverActions: {
       // Las fotos de check-in (cámara/galería) viajan como data URL en el

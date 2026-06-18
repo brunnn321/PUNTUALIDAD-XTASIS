@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { Clock, Camera, ImageIcon, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react'
 import { fromNow } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +22,9 @@ export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, au
   const [done, setDone] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  useEffect(() => { setMounted(true) }, [])
 
   function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -128,7 +130,7 @@ export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, au
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex gap-2" data-hydrated={mounted ? 'true' : undefined}>
         <button
           onClick={() => setShowCamera(true)}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-700 active:scale-95 transition-all"

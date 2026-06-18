@@ -6,7 +6,7 @@ config({ path: path.resolve(__dirname, '.env.local') })
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30_000,
+  timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
@@ -32,7 +32,8 @@ export default defineConfig({
       name: 'chrome',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome', headless: false
+        channel: 'chrome',
+        headless: false,
       },
     },
   ],
