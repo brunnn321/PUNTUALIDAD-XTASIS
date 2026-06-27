@@ -10,7 +10,7 @@ export default function AttendancePhoto({ url, name }: { url: string; name: stri
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-10 h-10 rounded-lg overflow-hidden border-2 border-violet-200 hover:border-violet-400 transition-colors flex-shrink-0"
+        className="w-10 h-10 rounded-lg overflow-hidden border-2 border-brand-200 hover:border-brand-400 transition-colors flex-shrink-0"
         title="Ver foto de asistencia"
       >
         <img src={url} alt={name} className="w-full h-full object-cover" />
@@ -24,7 +24,7 @@ export default function AttendancePhoto({ url, name }: { url: string; name: stri
           <div className="relative max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setOpen(false)}
-              className="absolute -top-10 right-0 text-white p-2 hover:text-gray-300"
+              className="absolute -top-10 right-0 text-white p-2 hover:text-white/70"
             >
               <X size={24} />
             </button>

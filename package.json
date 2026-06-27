@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "verify": "pnpm lint && pnpm test && pnpm test:e2e && pnpm build"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.58.0",

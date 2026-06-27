@@ -192,9 +192,26 @@ export default function CheckInCamera({ eventId, eventTitle, onClose }: Props) {
 
         {/* Éxito */}
         {phase === 'done' && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-4 text-white">
-            <CheckCircle size={80} className="text-green-400" />
-            <p className="text-2xl font-bold">¡Asistencia registrada!</p>
+          <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-5 text-white animate-fade-in">
+            {/* Círculo con check animado */}
+            <div className="animate-success-pop">
+              <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_40px_oklch(0.7_0.2_145/0.6)]">
+                <svg viewBox="0 0 52 52" className="w-12 h-12" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline
+                    points="14,27 22,36 38,18"
+                    stroke="white"
+                    strokeWidth="4"
+                    strokeDasharray="40"
+                    strokeDashoffset="0"
+                    style={{ animation: 'check-draw 350ms cubic-bezier(0.16,1,0.3,1) 200ms both' }}
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center space-y-1 animate-slide-up [animation-delay:120ms]">
+              <p className="text-2xl font-bold tracking-tight">¡Asistencia registrada!</p>
+              <p className="text-sm text-white/50">Cerrando en un momento…</p>
+            </div>
           </div>
         )}
 
@@ -232,7 +249,7 @@ export default function CheckInCamera({ eventId, eventTitle, onClose }: Props) {
             className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
             aria-label="Tomar foto"
           >
-            <Camera size={34} className="text-gray-800" />
+            <Camera size={34} className="text-foreground" />
           </button>
         </div>
       )}
@@ -253,7 +270,7 @@ export default function CheckInCamera({ eventId, eventTitle, onClose }: Props) {
           </button>
           <button
             onClick={confirmCheckIn}
-            className="flex-1 py-3.5 rounded-xl bg-violet-600 text-white font-semibold active:bg-violet-700 active:scale-95 transition-all"
+            className="flex-1 py-3.5 rounded-xl bg-brand-500 text-white font-semibold active:bg-brand-600 active:scale-95 transition-all"
           >
             Ingresar asistencia
           </button>

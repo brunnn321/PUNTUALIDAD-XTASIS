@@ -26,11 +26,11 @@ export const db = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_K
 })
 
 export const EVENT_TYPES = {
-  ensayo:       '93bd7a22-93d6-4ed6-b5ec-cd72dd4f5e32',
-  presentacion: '7ebaa771-0d46-4933-8c47-19c75eabfec4',
-  viaje:        '638369a4-e18f-49e1-898d-62c8a4897041',
-  medios:       '692f2870-9f7c-42d5-8543-915c94e6012d',
-  seccional:    '88b96701-f6eb-4292-b7ab-ef88385c5db8',
+  ensayo:       '5cffb77b-d92d-4b84-925c-91cf39efab6f',
+  presentacion: 'f16a1024-9719-4e95-b04e-3fbae5970a40',
+  viaje:        '3172880e-87b3-4675-b1f6-36a5fb7f2638',
+  medios:       '3ba1cdd7-b557-4350-b280-80eb3188b9b5',
+  seccional:    'd9e7ba6f-3729-4205-990e-c587065b8886',
 } as const
 
 type Role = 'director' | 'member'

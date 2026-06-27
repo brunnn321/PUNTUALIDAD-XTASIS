@@ -54,7 +54,7 @@ export default function EventControls({ eventId, status, checkinOpensAt, startsA
 
   if (status === 'closed') {
     return (
-      <div className="bg-gray-100 text-gray-500 rounded-xl px-4 py-2.5 text-sm text-center font-medium">
+      <div className="bg-foreground/6 text-foreground/40 rounded-xl px-4 py-2.5 text-sm text-center font-medium">
         Evento cerrado
       </div>
     )
@@ -68,7 +68,7 @@ export default function EventControls({ eventId, status, checkinOpensAt, startsA
             Check-in abierto automáticamente
           </div>
         ) : now < opensAt ? (
-          <div className="flex-1 bg-gray-100 text-gray-500 rounded-xl px-4 py-2.5 text-sm text-center">
+          <div className="flex-1 bg-foreground/6 text-foreground/40 rounded-xl px-4 py-2.5 text-sm text-center">
             Check-in abre a las {new Date(checkinOpensAt).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}
           </div>
         ) : (
@@ -79,28 +79,38 @@ export default function EventControls({ eventId, status, checkinOpensAt, startsA
         <button
           onClick={closeEvent}
           disabled={loading}
-          className="flex-1 bg-red-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
+          className="flex-1 bg-red-600 hover:bg-red-700 active:scale-95 active:bg-red-800 text-white rounded-xl py-2.5 text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
         >
-          Cerrar y registrar ausentes
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Cerrando…
+            </span>
+          ) : 'Cerrar y registrar ausentes'}
         </button>
       </div>
       <div className="flex gap-2">
-        <button
-          onClick={notifyMembers}
-          disabled={notifying}
-          className="flex-1 bg-violet-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
-        >
-          {notifying ? 'Enviando...' : '🔔 Notificar'}
-        </button>
-        <Link
+      <button
+        onClick={notifyMembers}
+        disabled={notifying}
+        className="w-full bg-brand-500 hover:bg-brand-600 active:scale-95 active:bg-brand-700 text-white rounded-xl py-2.5 text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
+      >
+        {notifying ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Enviando…
+          </span>
+        ) : '🔔 Notificar miembros'}
+      </button>
+      <Link
           href={`/eventos/${eventId}/editar`}
           className="flex-1 bg-gray-100 text-gray-700 rounded-xl py-2.5 text-sm font-medium text-center hover:bg-gray-200 transition-colors"
         >
           ✏️ Editar
         </Link>
-      </div>
+        </div>
       {notifyMsg && (
-        <p className="text-xs text-center text-gray-500">{notifyMsg}</p>
+        <p className="text-xs text-center text-foreground/40">{notifyMsg}</p>
       )}
     </div>
   )

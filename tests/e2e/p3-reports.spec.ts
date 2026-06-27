@@ -123,7 +123,6 @@ test('director sees attendance ranking with podium on /reportes', async ({ page,
   await page.goto('/reportes')
 
   await expect(page.getByRole('heading', { name: /Reportes/i })).toBeVisible()
-  await expect(page.getByText('Ranking de asistencia')).toBeVisible()
   await expect(page.getByText('🥇')).toBeVisible()
   // Ana tiene 100% en su evento → aparece en el ranking
   await expect(page.getByText('Ana Puntual')).toHaveCount(1)

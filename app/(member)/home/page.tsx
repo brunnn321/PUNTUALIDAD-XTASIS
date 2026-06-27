@@ -5,29 +5,34 @@ import CheckInButton from '@/components/member/CheckInButton'
 import AutoRefreshOnOpen from '@/components/member/AutoRefreshOnOpen'
 import AttendancePhoto from '@/components/director/AttendancePhoto'
 import { getLeastFinesRanking } from '@/lib/actions/rankings'
-import LogoutButton from '@/components/LogoutButton'
 import type { SectionName, EventWithType } from '@/lib/supabase/types'
+import { ChevronRight, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import FetchError from '@/components/FetchError'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
 export default async function HomePage() {
-  // Cerrar automáticamente eventos vencidos antes de cargar la página
   await autoCloseExpiredEvents()
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user!.id)
     .single()
 
+  if (profileError) {
+    return <FetchError context="No se pudo cargar tu perfil" />
+  }
+
   const now = new Date()
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
 
   // Próximos eventos (no cerrados, incluyendo ventana de check-in activa)
-  const { data: upcomingEvents } = await supabase
+  const { data: upcomingEvents, error: eventsError } = await supabase
     .from('events')
     .select('*, event_types(*)')
     .gte('starts_at', oneHourAgo)
@@ -44,15 +49,14 @@ export default async function HomePage() {
 
   const allEvents = [...(upcomingEvents ?? []), ...(closedEvents ?? [])]
 
-  // Mi asistencia registrada en todos esos eventos
-  const eventIds = allEvents.map(e => e.id)
+  // Mi asistencia registrada en esos eventos
+  const eventIds = upcomingEvents?.map(e => e.id) ?? []
   const { data: myAttendances } = await supabase
     .from('attendances')
     .select('*')
     .eq('user_id', user!.id)
     .in('event_id', eventIds)
 
-  // Mis multas totales
   const { data: fineData } = await supabase
     .from('attendances')
     .select('fine_amount')
@@ -60,11 +64,8 @@ export default async function HomePage() {
     .gt('fine_amount', 0)
 
   const totalFines = fineData?.reduce((sum, a) => sum + a.fine_amount, 0) ?? 0
-
-  // Top 3 con menos multas del grupo
   const top3 = await getLeastFinesRanking(3)
 
-  // Determinar si el evento aplica a este miembro
   function appliesToMe(event: EventWithType): boolean {
     if (!event.target_sections || event.target_sections.length === 0) return true
     return event.target_sections.includes(profile?.section as SectionName)
@@ -72,7 +73,6 @@ export default async function HomePage() {
 
   const nowForAutoOpen = new Date()
 
-  // Eventos que aún no abrieron y aplican al miembro sin asistencia — para el auto-refresh
   const upcomingOpensAt = (upcomingEvents ?? [])
     .filter(event => {
       if (!appliesToMe(event)) return false
@@ -90,122 +90,197 @@ export default async function HomePage() {
   })
   const autoOpenEventId = pendingOpenEvents.length === 1 ? pendingOpenEvents[0].id : null
 
+  const firstName = profile?.full_name?.split(' ')[0] ?? ''
+  const sectionLabel = profile?.section ? SECTION_LABELS[profile.section as SectionName] : null
+  const sectionLine = [sectionLabel, profile?.instrument].filter(Boolean).join(' · ')
+
+  // Separar eventos: los que aplican vs. los que no
+  const myEvents = (upcomingEvents ?? []).filter(appliesToMe)
+  const otherEvents = (upcomingEvents ?? []).filter(e => !appliesToMe(e))
+  const heroEvent = myEvents[0] ?? null
+  const restEvents = myEvents.slice(1)
+
   return (
-    <div className="p-4 space-y-6 max-w-lg mx-auto">
-      {/* Header */}
-      <div className="pt-6 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">Hola,</p>
-          <h1 className="text-2xl font-bold text-gray-900">{profile?.full_name?.split(' ')[0]}</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {profile?.section ? SECTION_LABELS[profile.section as SectionName] : 'Sin sección'}
-            {profile?.instrument ? ` · ${profile.instrument}` : ''}
-          </p>
-        </div>
-        {profile?.photo_url && (
-          <img src={profile.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-        )}
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-lg mx-auto px-4 pt-8 pb-24 space-y-6">
 
-      {/* Multas pendientes */}
-      {totalFines > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-red-500 font-medium">Multas acumuladas</p>
-            <p className="text-xl font-bold text-red-700">{formatCurrency(totalFines)}</p>
+            <p className="text-sm text-foreground/50">Hola,</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{firstName}</h1>
+            {sectionLine && (
+              <p className="text-xs text-foreground/40 mt-0.5">{sectionLine}</p>
+            )}
           </div>
-          <a href="/mis-multas" className="text-sm text-red-600 underline">Ver detalle</a>
+          {profile?.photo_url && (
+            <img
+              src={profile.photo_url}
+              alt={firstName}
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-brand-200"
+            />
+          )}
         </div>
-      )}
 
-      {/* Top 3 con menos multas */}
-      {top3.length > 0 && (
-        <section>
-          <h2 className="font-semibold text-gray-900 mb-3">Top 3 · Menos multas</h2>
-          <div className="space-y-2">
-            {top3.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3 rounded-xl p-3 shadow-sm border bg-white border-gray-100">
-                <span className="text-2xl w-8 text-center">{MEDALS[i]}</span>
-                {m.photo_url ? (
-                  <img src={m.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm">
-                    {m.full_name?.charAt(0)}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm truncate">{m.full_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {m.section ? SECTION_LABELS[m.section as SectionName] : 'Sin sección'}
-                  </p>
+        {/* Alerta de multas — solo si hay */}
+        {totalFines > 0 && (
+          <Link
+            href="/mis-multas"
+            className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 group"
+          >
+            <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-700">
+                {formatCurrency(totalFines)} en multas
+              </p>
+              <p className="text-xs text-red-400">Ver detalle</p>
+            </div>
+            <ChevronRight size={16} className="text-red-300 group-hover:text-red-500 transition-colors" />
+          </Link>
+        )}
+
+        {/* Evento hero — check-in como protagonista */}
+        {heroEvent ? (() => {
+          const myAttendance = myAttendances?.find(a => a.event_id === heroEvent.id)
+          const opensAt = new Date(heroEvent.checkin_opens_at)
+          const closesAt = new Date(new Date(heroEvent.starts_at).getTime() + 60 * 60 * 1000)
+          const isOpen = nowForAutoOpen >= opensAt && nowForAutoOpen <= closesAt
+          const cfg = EVENT_STATUS_CONFIG[heroEvent.status as keyof typeof EVENT_STATUS_CONFIG]
+
+          return (
+            <section className="space-y-3">
+              <div className="bg-white rounded-2xl border border-foreground/6 overflow-hidden">
+                {/* Franja de estado */}
+                <div className={`px-4 py-2 flex items-center gap-2 ${cfg.bg}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                  <span className={`text-xs font-semibold ${cfg.color}`}>{cfg.label}</span>
+                  {isOpen && (
+                    <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-green-700">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                      </span>
+                      Check-in abierto
+                    </span>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* Próximos eventos */}
-      <section>
-        <h2 className="font-semibold text-gray-900 mb-3">Próximos eventos</h2>
-        <div className="space-y-3">
-          {upcomingEvents && upcomingEvents.length > 0 ? upcomingEvents.map((event: any) => {
-            const applies = appliesToMe(event)
-            const myAttendance = myAttendances?.find(a => a.event_id === event.id)
-            const nowDate = new Date()
-            const opensAt = new Date(event.checkin_opens_at)
-            const closesAt = new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000)
-            // Check-in abierto automáticamente: desde la ventana hasta 1 hora después del inicio
-            const isOpen = nowDate >= opensAt && nowDate <= closesAt
-
-            return (
-              <div key={event.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-900">{event.title}</p>
-                    <p className="text-sm text-gray-500">
-                      {event.event_types?.name} · {formatDateTime(event.starts_at)}
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground leading-tight">{heroEvent.title}</h2>
+                    <p className="text-sm text-foreground/50 mt-0.5">
+                      {heroEvent.event_types?.name} · {formatDateTime(heroEvent.starts_at)}
                     </p>
                   </div>
-                  <div className="flex-shrink-0">
-                    <EventStatusPill status={event.status} />
-                  </div>
+
+                  {heroEvent.notes && (
+                    <p className="text-xs text-foreground/50 bg-foreground/4 rounded-lg px-3 py-2">
+                      {heroEvent.notes}
+                    </p>
+                  )}
+
+                  {myAttendance ? (
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-sm font-medium text-green-700 flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</span>
+                        Asistencia registrada
+                      </p>
+                      {myAttendance.photo_url && (
+                        <AttendancePhoto url={myAttendance.photo_url} name={heroEvent.title} />
+                      )}
+                    </div>
+                  ) : (
+                    <CheckInButton
+                      eventId={heroEvent.id}
+                      eventTitle={heroEvent.title}
+                      isOpen={isOpen}
+                      opensAt={heroEvent.checkin_opens_at}
+                      autoOpen={autoOpenEventId === heroEvent.id}
+                    />
+                  )}
                 </div>
-                {event.notes && (
-                  <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                    📝 {event.notes}
-                  </p>
-                )}
+              </div>
 
-                {!applies && (
-                  <p className="text-xs bg-gray-100 text-gray-500 rounded-lg px-3 py-2 text-center">
-                    No aplica para tu sección
-                  </p>
-                )}
+              {/* Eventos adicionales del día */}
+              {restEvents.length > 0 && (
+                <div className="space-y-2">
+                  {restEvents.map((event: any) => {
+                    const att = myAttendances?.find(a => a.event_id === event.id)
+                    const evOpensAt = new Date(event.checkin_opens_at)
+                    const evClosesAt = new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000)
+                    const evIsOpen = nowForAutoOpen >= evOpensAt && nowForAutoOpen <= evClosesAt
+                    return (
+                      <div key={event.id} className="bg-white rounded-xl border border-foreground/6 p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground text-sm truncate">{event.title}</p>
+                            <p className="text-xs text-foreground/40">{formatDateTime(event.starts_at)}</p>
+                          </div>
+                        </div>
+                        {att ? (
+                          <p className="text-xs text-green-600 font-medium">✓ Registrado</p>
+                        ) : (
+                          <CheckInButton
+                            eventId={event.id}
+                            eventTitle={event.title}
+                            isOpen={evIsOpen}
+                            opensAt={event.checkin_opens_at}
+                            autoOpen={autoOpenEventId === event.id}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )
+        })() : (
+          <div className="bg-white rounded-2xl border-2 border-dashed border-foreground/10 p-10 text-center space-y-1">
+            <p className="text-sm font-medium text-foreground/40">Sin eventos próximos</p>
+            <p className="text-xs text-foreground/25">Te avisaremos cuando haya uno</p>
+          </div>
+        )}
 
-                {applies && !myAttendance && (
-                  <CheckInButton
-                    eventId={event.id}
-                    eventTitle={event.title}
-                    isOpen={isOpen}
-                    opensAt={event.checkin_opens_at}
-                    autoOpen={autoOpenEventId === event.id}
-                  />
-                )}
+        {/* Eventos de otras secciones */}
+        {otherEvents.length > 0 && (
+          <section className="space-y-2">
+            {otherEvents.map((event: any) => (
+              <div key={event.id} className="bg-white rounded-xl border border-foreground/6 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground/60 truncate">{event.title}</p>
+                  <p className="text-xs text-foreground/35">{formatDateTime(event.starts_at)}</p>
+                </div>
+                <span className="flex-shrink-0 text-xs text-foreground/35 font-medium">No aplica para tu sección</span>
+              </div>
+            ))}
+          </section>
+        )}
 
-                {applies && myAttendance && (
-                  <div className="flex items-center justify-center gap-2">
-                    <p className="text-xs text-gray-400">Asistencia ya registrada</p>
-                    {myAttendance.photo_url && (
-                      <AttendancePhoto url={myAttendance.photo_url} name={event.title} />
+        {/* Ranking — al fondo, colapsable en espíritu */}
+        {top3.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-foreground/50">Top · Menos multas</h2>
+            <div className="space-y-1.5">
+              {top3.map((m, i) => (
+                <div key={m.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 border border-foreground/6">
+                  <span className="text-lg w-7 text-center leading-none">{MEDALS[i]}</span>
+                  {m.photo_url ? (
+                    <img src={m.photo_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-500 font-bold text-xs flex-shrink-0">
+                      {m.full_name?.charAt(0)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{m.full_name}</p>
+                    {m.section && (
+                      <p className="text-xs text-foreground/40">{SECTION_LABELS[m.section as SectionName]}</p>
                     )}
                   </div>
-                )}
-              </div>
-            )
-          }) : (
-            <div className="bg-white rounded-xl p-8 text-center text-gray-400 border border-dashed border-gray-200">
-              No hay eventos próximos
+                  <span className="text-xs font-semibold text-green-600 flex-shrink-0">✓</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -243,18 +318,11 @@ export default async function HomePage() {
       )}
 
       <LogoutButton />
+          </section>
+        )}
+
+      </div>
       <AutoRefreshOnOpen opensAtList={upcomingOpensAt} />
     </div>
-  )
-}
-
-function EventStatusPill({ status }: { status: string }) {
-  const cfg = EVENT_STATUS_CONFIG[status as keyof typeof EVENT_STATUS_CONFIG]
-  if (!cfg) return null
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
   )
 }

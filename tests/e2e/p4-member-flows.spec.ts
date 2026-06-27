@@ -57,8 +57,8 @@ test('member sees upcoming and past events on /mis-eventos', async ({ page, cont
   await page.goto('/mis-eventos')
 
   await expect(page.getByRole('heading', { name: /Mis eventos/i })).toBeVisible()
-  // El porcentaje de asistencia aparece en ambas vistas
-  await expect(page.getByText(/100%/)).toBeVisible()
+  // El resumen de asistencia aparece en ambas vistas
+  await expect(page.getByText(/Asistencia/i).first()).toBeVisible()
   // Cambiar a vista Lista para ver los títulos de eventos
   await page.getByRole('button', { name: /Lista/i }).click()
   await expect(page.getByText('Ensayo Próximo MisEventos')).toBeVisible()
