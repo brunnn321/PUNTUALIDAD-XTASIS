@@ -2,6 +2,50 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { logSupabaseError } from '@/lib/supabase/query-helpers'
+import { redirect } from 'next/navigation'
+
+export async function updateEvent(
+  id: string,
+  data: {
+    title: string
+    eventTypeId: string
+    startsAt: string
+    checkinWindowMin: number
+    targetSections: string[]
+    notes: string
+  }
+) {
+  const supabase = await createClient()
+
+  const startsAtMs = new Date(data.startsAt).getTime()
+  const opensAtMs  = startsAtMs - data.checkinWindowMin * 60 * 1000
+  const closesAtMs = startsAtMs + 60 * 60 * 1000
+  const nowMs = Date.now()
+
+  // Fix bug: recalcular status según la nueva hora para evitar que quede
+  // 'open' con una ventana de check-in que ya no corresponde al nuevo horario.
+  const newStatus = nowMs >= opensAtMs && nowMs < closesAtMs ? 'open' : 'scheduled'
+
+  const { error } = await supabase
+    .from('events')
+    .update({
+      title: data.title,
+      event_type_id: data.eventTypeId,
+      starts_at: new Date(data.startsAt).toISOString(),
+      checkin_window_min: data.checkinWindowMin,
+      target_sections: data.targetSections.length > 0 ? data.targetSections : null,
+      notes: data.notes || null,
+      status: newStatus,
+    })
+    .eq('id', id)
+    .neq('status', 'closed')
+
+  if (logSupabaseError('events: updateEvent', error, { eventId: id })) {
+    return { error: error!.message }
+  }
+
+  redirect(`/eventos/${id}`)
+}
 
 export async function deleteEventById(id: string) {
   const supabase = await createClient()

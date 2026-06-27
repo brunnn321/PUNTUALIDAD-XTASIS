@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { EventStatus } from '@/lib/supabase/types'
 
 interface Props {
@@ -83,13 +84,21 @@ export default function EventControls({ eventId, status, checkinOpensAt, startsA
           Cerrar y registrar ausentes
         </button>
       </div>
-      <button
-        onClick={notifyMembers}
-        disabled={notifying}
-        className="w-full bg-violet-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
-      >
-        {notifying ? 'Enviando...' : '🔔 Notificar miembros'}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={notifyMembers}
+          disabled={notifying}
+          className="flex-1 bg-violet-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
+        >
+          {notifying ? 'Enviando...' : '🔔 Notificar'}
+        </button>
+        <Link
+          href={`/eventos/${eventId}/editar`}
+          className="flex-1 bg-gray-100 text-gray-700 rounded-xl py-2.5 text-sm font-medium text-center hover:bg-gray-200 transition-colors"
+        >
+          ✏️ Editar
+        </Link>
+      </div>
       {notifyMsg && (
         <p className="text-xs text-center text-gray-500">{notifyMsg}</p>
       )}

@@ -26,16 +26,26 @@ export default async function HomePage() {
   const now = new Date()
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
 
-  // Próximos eventos: incluir los que empezaron hace menos de 1 hora (ventana de check-in activa)
+  // Próximos eventos (no cerrados, incluyendo ventana de check-in activa)
   const { data: upcomingEvents } = await supabase
     .from('events')
     .select('*, event_types(*)')
     .gte('starts_at', oneHourAgo)
     .neq('status', 'closed')
-    .order('starts_at', { ascending: false })
+    .order('starts_at', { ascending: true })
 
-  // Mi asistencia registrada en esos eventos
-  const eventIds = upcomingEvents?.map(e => e.id) ?? []
+  // Eventos cerrados recientes (últimos 10)
+  const { data: closedEvents } = await supabase
+    .from('events')
+    .select('*, event_types(*)')
+    .eq('status', 'closed')
+    .order('starts_at', { ascending: false })
+    .limit(10)
+
+  const allEvents = [...(upcomingEvents ?? []), ...(closedEvents ?? [])]
+
+  // Mi asistencia registrada en todos esos eventos
+  const eventIds = allEvents.map(e => e.id)
   const { data: myAttendances } = await supabase
     .from('attendances')
     .select('*')
@@ -200,6 +210,37 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Eventos anteriores (cerrados) */}
+      {closedEvents && closedEvents.length > 0 && (
+        <section>
+          <h2 className="font-semibold text-gray-900 mb-3">Eventos anteriores</h2>
+          <div className="space-y-2">
+            {closedEvents.filter(appliesToMe).map((event: any) => {
+              const myAttendance = myAttendances?.find(a => a.event_id === event.id)
+              const statusMap: Record<string, { label: string; color: string }> = {
+                present: { label: 'Presente',  color: 'text-green-600' },
+                late:    { label: 'Tardanza',  color: 'text-amber-600' },
+                absent:  { label: 'Falta',     color: 'text-red-600'   },
+              }
+              const att = myAttendance ? statusMap[myAttendance.status] : null
+              return (
+                <div key={event.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-800 text-sm truncate">{event.title}</p>
+                    <p className="text-xs text-gray-400">{formatDateTime(event.starts_at)}</p>
+                  </div>
+                  {att ? (
+                    <span className={`text-xs font-semibold flex-shrink-0 ${att.color}`}>{att.label}</span>
+                  ) : (
+                    <span className="text-xs text-gray-400 flex-shrink-0">Sin registro</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       <LogoutButton />
       <AutoRefreshOnOpen opensAtList={upcomingOpensAt} />
