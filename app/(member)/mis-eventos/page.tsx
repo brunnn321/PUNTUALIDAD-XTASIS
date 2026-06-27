@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 import type { AttendanceStatus, SectionName } from '@/lib/supabase/types'
 import MemberEventsToggle from '@/components/member/MemberEventsToggle'
+import FetchError from '@/components/FetchError'
 
 export default async function MisEventosPage() {
   const supabase = await createClient()
@@ -20,7 +21,9 @@ export default async function MisEventosPage() {
     .order('starts_at', { ascending: false })
     .limit(100)
 
-  const { data: allEvents } = await eventsQuery
+  const { data: allEvents, error: eventsError } = await eventsQuery
+
+  if (eventsError) return <FetchError context="No se pudieron cargar tus eventos" />
 
   // Filtrar los que aplican al miembro según sección
   const section = profile?.section as SectionName | null
@@ -60,26 +63,33 @@ export default async function MisEventosPage() {
   const totalFines = closedAtts.reduce((sum: number, e: any) => sum + (e.attendance.fine_amount ?? 0), 0)
 
   return (
-    <div className="p-4 space-y-5 max-w-lg mx-auto">
-      <div className="pt-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mis eventos</h1>
-      </div>
+    <div className="max-w-lg mx-auto px-4 pt-8 pb-24 space-y-6">
+      <h1 className="text-2xl font-bold text-foreground tracking-tight">Mis eventos</h1>
 
-      {/* Resumen */}
+      {/* Resumen de asistencia — solo si hay historial */}
       {total > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-gray-600">Asistencia total</p>
-            <p className="text-2xl font-bold text-violet-600">{pct}%</p>
+        <div className="bg-white rounded-2xl border border-foreground/6 p-4 space-y-3">
+          <div className="flex items-baseline justify-between">
+            <p className="text-sm text-foreground/50">Asistencia</p>
+            <p className="text-3xl font-bold text-foreground tabular-nums">{pct}<span className="text-lg font-semibold text-foreground/40">%</span></p>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-sm">
-            <div><p className="font-bold text-green-600">{present}</p><p className="text-xs text-gray-400">Presentes</p></div>
-            <div><p className="font-bold text-amber-600">{late}</p><p className="text-xs text-gray-400">Tardanzas</p></div>
-            <div><p className="font-bold text-red-600">{absent}</p><p className="text-xs text-gray-400">Faltas</p></div>
+          <div className="grid grid-cols-3 gap-px bg-foreground/6 rounded-xl overflow-hidden">
+            <div className="bg-white px-3 py-2.5 text-center">
+              <p className="text-base font-bold text-green-600 tabular-nums">{present}</p>
+              <p className="text-xs text-foreground/40 mt-0.5">Presentes</p>
+            </div>
+            <div className="bg-white px-3 py-2.5 text-center">
+              <p className="text-base font-bold text-amber-600 tabular-nums">{late}</p>
+              <p className="text-xs text-foreground/40 mt-0.5">Tardanzas</p>
+            </div>
+            <div className="bg-white px-3 py-2.5 text-center">
+              <p className="text-base font-bold text-red-600 tabular-nums">{absent}</p>
+              <p className="text-xs text-foreground/40 mt-0.5">Faltas</p>
+            </div>
           </div>
           {totalFines > 0 && (
-            <p className="text-xs text-red-500 text-center mt-2">
-              Multas acumuladas: <strong>{formatCurrency(totalFines)}</strong>
+            <p className="text-xs text-red-500 text-center">
+              {formatCurrency(totalFines)} en multas acumuladas
             </p>
           )}
         </div>

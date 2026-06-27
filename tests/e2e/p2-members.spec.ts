@@ -85,7 +85,7 @@ test('director deactivates a member using selection mode', async ({ page, contex
   await page.waitForLoadState('networkidle')
 
   // El miembro debe aparecer en sección inactivos
-  await expect(page.getByRole('heading', { name: 'Inactivos' })).toBeVisible()
+  await expect(page.getByText('Inactivos', { exact: true })).toBeVisible()
 
   // Verificar en base de datos
   const { data } = await db.from('profiles').select('active').eq('id', member.id).single()
@@ -114,7 +114,7 @@ test('director reactivates an inactive member', async ({ page, context, baseURL 
   await page.goto('/miembros')
 
   // Sección inactivos debe ser visible
-  await expect(page.getByRole('heading', { name: 'Inactivos' })).toBeVisible()
+  await expect(page.getByText('Inactivos', { exact: true })).toBeVisible()
   await expect(page.getByText('Miembro Inactivo Reactivar')).toBeVisible()
 
   await page.getByRole('button', { name: /Seleccionar/i }).click()

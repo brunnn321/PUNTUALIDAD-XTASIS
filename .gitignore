@@ -43,6 +43,7 @@ yarn-error.log*
 AGENTS.md
 CLAUDE.md
 .claude/
+.impeccable/
 
 # vercel
 .vercel

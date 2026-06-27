@@ -5,7 +5,7 @@ import { createMember } from '@/lib/actions/members'
 import { SECTION_LABELS } from '@/lib/utils'
 import type { SectionName } from '@/lib/supabase/types'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, UserPlus, AlertCircle } from 'lucide-react'
 
 const SECTIONS = Object.entries(SECTION_LABELS) as [SectionName, string][]
 
@@ -13,79 +13,89 @@ export default function NuevoMiembroPage() {
   const [state, action, pending] = useActionState(createMember, null)
 
   return (
-    <div className="p-4 max-w-lg mx-auto space-y-5">
-      <div className="pt-4">
-        <Link href="/miembros" className="flex items-center gap-1 text-sm text-violet-600 mb-3">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-24 space-y-5">
+      <div>
+        <Link href="/miembros" className="inline-flex items-center gap-1 text-sm text-brand-500 mb-4 btn-focus rounded-lg">
           <ChevronLeft size={16} /> Miembros
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo miembro</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">Nuevo miembro</h1>
+        <p className="text-sm text-foreground/45 mt-0.5">
           El miembro podrá iniciar sesión con Google usando el correo registrado.
         </p>
       </div>
 
       <form action={action} className="space-y-4">
         {state?.error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
-            {state.error}
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{state.error}</p>
           </div>
         )}
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Nombre completo *</label>
+        <Field label="Nombre completo *">
           <input
             name="full_name"
             type="text"
             required
             placeholder="Ej: Juan Pérez"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="input-base btn-focus"
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Correo electrónico *</label>
+        <Field label="Correo electrónico *">
           <input
             name="email"
             type="email"
             required
             placeholder="correo@gmail.com"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="input-base btn-focus"
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Sección *</label>
+        <Field label="Sección *">
           <select
             name="section"
             required
             defaultValue=""
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+            className="input-base btn-focus bg-white"
           >
             <option value="" disabled>Selecciona una sección</option>
             {SECTIONS.map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
-        </div>
+        </Field>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Instrumento <span className="text-gray-400">(opcional)</span></label>
+        <Field label={<>Instrumento <span className="text-foreground/35 font-normal">— opcional</span></>}>
           <input
             name="instrument"
             type="text"
             placeholder="Ej: Trompeta"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="input-base btn-focus"
           />
-        </div>
+        </Field>
 
         <button
           type="submit"
           disabled={pending}
-          className="w-full bg-violet-600 text-white rounded-xl py-3 text-sm font-semibold disabled:opacity-50 mt-2"
+          className="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white rounded-xl py-3 text-sm font-semibold transition-all duration-150 shadow-e1 btn-focus disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 mt-2"
         >
-          {pending ? 'Guardando...' : 'Agregar miembro'}
+          {pending ? (
+            <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando…</>
+          ) : (
+            <><UserPlus size={16} /> Agregar miembro</>
+          )}
         </button>
       </form>
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-foreground/65">{label}</label>
+      {children}
     </div>
   )
 }

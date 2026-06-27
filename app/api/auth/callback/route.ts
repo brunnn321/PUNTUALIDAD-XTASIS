@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { logError, logInfo } from '@/lib/logger'
 import { logSupabaseError } from '@/lib/supabase/query-helpers'
 import { NextRequest, NextResponse } from 'next/server'
@@ -13,7 +13,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=auth`)
   }
 
-  const supabase = await createClient()
+  // El redirect final se muta a medida que Supabase setea cookies en setAll
+  // Empezamos apuntando a error; se reemplaza al final si todo sale bien
+  const cookieJar: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieJar.push({ name, value, options: options ?? {} })
+          })
+        },
+      },
+    }
+  )
+
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (logSupabaseError('auth/callback: exchangeCodeForSession', exchangeError, { requestId })) {
@@ -44,5 +64,13 @@ export async function GET(request: NextRequest) {
 
   const dest = profile?.role === 'director' ? '/dashboard' : '/home'
   logInfo('auth/callback: redirecting after login', { userId: user.id, dest, requestId })
-  return NextResponse.redirect(`${origin}${dest}`)
+
+  // Crear el redirect final y aplicarle todas las cookies de sesión acumuladas
+  const response = NextResponse.redirect(`${origin}${dest}`)
+  cookieJar.forEach(({ name, value, options }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response.cookies.set(name, value, options as any)
+  })
+
+  return response
 }

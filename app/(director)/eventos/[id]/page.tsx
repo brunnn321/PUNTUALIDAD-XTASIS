@@ -8,17 +8,19 @@ import type { AttendanceStatus, SectionName } from '@/lib/supabase/types'
 import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import FetchError from '@/components/FetchError'
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: event } = await supabase
+  const { data: event, error: eventError } = await supabase
     .from('events')
     .select('*, event_types(*)')
     .eq('id', id)
     .single()
 
+  if (eventError) return <FetchError context="No se pudo cargar el evento" />
   if (!event) notFound()
 
   // Para eventos cerrados mostramos activos + inactivos (inactivos al final)
@@ -39,13 +41,15 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     membersQuery = membersQuery.in('section', event.target_sections)
   }
 
-  const [{ data: members }, { data: attendances }] = await Promise.all([
+  const [{ data: members, error: membersError }, { data: attendances }] = await Promise.all([
     membersQuery,
     supabase
       .from('attendances')
       .select('user_id, status, fine_amount, checked_in_at, photo_url')
       .eq('event_id', id),
   ])
+
+  if (membersError) return <FetchError context="No se pudo cargar la lista de miembros" />
 
   // Mapa rápido user_id → asistencia
   const attMap = new Map(attendances?.map(a => [a.user_id, a]) ?? [])
@@ -68,20 +72,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const eventType = (event as any).event_types
 
   return (
-    <div className="p-4 space-y-5 max-w-lg mx-auto">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-24 space-y-5">
       {/* Header */}
-      <div className="pt-4">
-        <Link href="/eventos" className="flex items-center gap-1 text-sm text-violet-600 mb-3">
+      <div>
+        <Link href="/eventos" className="flex items-center gap-1 text-sm text-brand-500 mb-3">
           <ChevronLeft size={16} /> Eventos
         </Link>
-        <h1 className="text-xl font-bold text-gray-900">{event.title}</h1>
-        <p className="text-sm text-gray-500">{eventType?.name} · {formatDateTime(event.starts_at)}</p>
+        <h1 className="text-xl font-bold text-foreground">{event.title}</h1>
+        <p className="text-sm text-foreground/50 mt-0.5">{eventType?.name} · {formatDateTime(event.starts_at)}</p>
         {event.target_sections && event.target_sections.length > 0 ? (
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-foreground/35 mt-0.5">
             Secciones: {event.target_sections.map((s: SectionName) => SECTION_LABELS[s]).join(', ')}
           </p>
         ) : (
-          <p className="text-xs text-gray-400 mt-0.5">Todas las secciones</p>
+          <p className="text-xs text-foreground/35 mt-0.5">Todas las secciones</p>
         )}
       </div>
 
@@ -96,28 +100,28 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       {/* Stats */}
       <div className="grid grid-cols-5 gap-1.5">
         {[
-          { label: 'Presentes',  value: present, color: 'text-green-600' },
-          { label: 'Tardanzas',  value: late,    color: 'text-amber-600' },
-          { label: 'Faltas',     value: absent,  color: 'text-red-600'   },
-          { label: 'Pendientes', value: pending, color: 'text-gray-400'  },
-          { label: 'Total',      value: rows.length, color: 'text-gray-700' },
+          { label: 'Presentes',  value: present,     color: 'text-green-600' },
+          { label: 'Tardanzas',  value: late,         color: 'text-amber-600' },
+          { label: 'Faltas',     value: absent,       color: 'text-red-600'   },
+          { label: 'Pendientes', value: pending,      color: 'text-foreground/40' },
+          { label: 'Total',      value: rows.length,  color: 'text-foreground' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl p-2.5 text-center shadow-sm border border-gray-100">
-            <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] text-gray-400 leading-tight">{s.label}</p>
+          <div key={s.label} className="bg-white rounded-xl p-2.5 text-center border border-foreground/6">
+            <p className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] text-foreground/35 leading-tight mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
 
       {totalFines > 0 && (
-        <div className="bg-red-50 rounded-xl p-3 text-center">
+        <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
           <p className="text-sm text-red-600">Multas generadas: <strong>{formatCurrency(totalFines)}</strong></p>
         </div>
       )}
 
       {/* Lista de miembros */}
-      <section>
-        <h2 className="font-semibold text-gray-900 mb-2">Miembros ({rows.length})</h2>
+      <section className="space-y-2">
+        <p className="text-sm font-medium text-foreground/50">Miembros · {rows.length}</p>
         {rows.length > 0 ? (
           <div className="space-y-2">
             {rows.map(row => {
@@ -125,29 +129,27 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               const statusCfg = att ? STATUS_CONFIG[att.status as AttendanceStatus] : null
 
               return (
-                <div key={row.id} className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
-                  {/* Avatar de perfil */}
+                <div key={row.id} className="bg-white rounded-xl p-3 flex items-center gap-3 border border-foreground/6">
                   {row.photo_url ? (
                     <img src={row.photo_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-500 font-bold text-sm flex-shrink-0">
                       {row.full_name?.charAt(0)}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="font-medium text-gray-900 text-sm truncate">{row.full_name}</p>
+                      <p className="font-medium text-foreground text-sm truncate">{row.full_name}</p>
                       {row.active === false && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 flex-shrink-0">Inactivo</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-foreground/8 text-foreground/40 flex-shrink-0">Inactivo</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-foreground/40 mt-0.5">
                       {row.section ? SECTION_LABELS[row.section as SectionName] : ''}
                       {row.instrument ? ` · ${row.instrument}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Foto de asistencia en miniatura */}
                     {att?.photo_url && att.status !== 'absent' && (
                       <AttendancePhoto url={att.photo_url} name={row.full_name ?? ''} />
                     )}
@@ -158,7 +160,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                             {statusCfg.label}
                           </span>
                           {att!.checked_in_at && att!.status !== 'absent' && (
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-foreground/35 mt-1 tabular-nums">
                               {new Date(att!.checked_in_at).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           )}
@@ -167,7 +169,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                           )}
                         </>
                       ) : (
-                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-400">
+                        <span className="text-xs px-2 py-1 rounded-full bg-foreground/6 text-foreground/40">
                           Pendiente
                         </span>
                       )}
@@ -178,8 +180,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             })}
           </div>
         ) : (
-          <div className="bg-white rounded-xl p-6 text-center text-gray-400 border border-dashed border-gray-200">
-            No hay miembros en las secciones seleccionadas
+          <div className="rounded-xl p-6 text-center border-2 border-dashed border-foreground/8">
+            <p className="text-sm text-foreground/35">No hay miembros en las secciones seleccionadas</p>
           </div>
         )}
       </section>

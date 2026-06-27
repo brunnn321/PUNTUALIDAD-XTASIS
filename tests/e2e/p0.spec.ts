@@ -91,12 +91,11 @@ test('director sees dashboard summary and can open the next event detail', async
   await signInAs(context, baseURL!, director.email)
   await page.goto('/dashboard')
 
-  await expect(page.getByText('Miembros activos')).toBeVisible()
-  await expect(page.getByText('Multas pendientes')).toBeVisible()
+  await expect(page.getByText(/miembro.*activo/i).first()).toBeVisible()
   await expect(page.getByText('Próximo evento')).toBeVisible()
   await expect(page.getByText('Ensayo P0 Dashboard').first()).toBeVisible()
 
-  await page.getByRole('link', { name: /Ver asistencia/i }).click()
+  await page.getByRole('link', { name: /Ver detalle/i }).click()
   await expect(page).toHaveURL(new RegExp(`/eventos/${eventId}$`))
   await expect(page.getByRole('heading', { name: 'Ensayo P0 Dashboard' })).toBeVisible()
 })

@@ -7,12 +7,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 // Color por nombre de tipo de evento
 const TYPE_COLORS: Record<string, { dot: string; bg: string; text: string }> = {
   'Ensayo':        { dot: 'bg-blue-500',   bg: 'bg-blue-50',   text: 'text-blue-700' },
-  'Presentación':  { dot: 'bg-violet-500', bg: 'bg-violet-50', text: 'text-violet-700' },
+  'Presentación':  { dot: 'bg-brand-500', bg: 'bg-brand-50', text: 'text-brand-600' },
   'Viaje':         { dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700' },
   'Medios':        { dot: 'bg-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-700' },
   'Seccional':     { dot: 'bg-green-500',  bg: 'bg-green-50',  text: 'text-green-700' },
 }
-const DEFAULT_COLOR = { dot: 'bg-gray-500', bg: 'bg-gray-50', text: 'text-gray-700' }
+const DEFAULT_COLOR = { dot: 'bg-foreground/40', bg: 'bg-foreground/4', text: 'text-foreground/70' }
 
 function getColor(typeName?: string) {
   return typeName ? (TYPE_COLORS[typeName] ?? DEFAULT_COLOR) : DEFAULT_COLOR
@@ -77,21 +77,21 @@ export default function EventsCalendarView({ events }: { events: any[] }) {
     <div className="space-y-4">
       {/* Cabecera del mes */}
       <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <ChevronLeft size={20} className="text-gray-600" />
+        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-foreground/8 transition-colors">
+          <ChevronLeft size={20} className="text-foreground/60" />
         </button>
-        <h2 className="font-semibold text-gray-900">
+        <h2 className="font-semibold text-foreground">
           {MONTHS[month]} {year}
         </h2>
-        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <ChevronRight size={20} className="text-gray-600" />
+        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-foreground/8 transition-colors">
+          <ChevronRight size={20} className="text-foreground/60" />
         </button>
       </div>
 
       {/* Días de la semana */}
       <div className="grid grid-cols-7 text-center">
         {DAYS.map(d => (
-          <div key={d} className="text-xs font-semibold text-gray-400 py-1">{d}</div>
+          <div key={d} className="text-xs font-semibold text-foreground/40 py-1">{d}</div>
         ))}
       </div>
 
@@ -106,13 +106,13 @@ export default function EventsCalendarView({ events }: { events: any[] }) {
               key={day}
               onClick={() => setSelectedDay(selected ? null : day)}
               className={`relative flex flex-col items-center py-1.5 rounded-xl transition-colors ${
-                selected ? 'bg-violet-600' : 'hover:bg-gray-50'
+                selected ? 'bg-brand-500' : 'hover:bg-foreground/4'
               }`}
             >
               <span className={`text-sm font-medium ${
                 selected ? 'text-white' :
-                isToday(day) ? 'text-violet-600 font-bold' :
-                'text-gray-700'
+                isToday(day) ? 'text-brand-500 font-bold' :
+                'text-foreground/70'
               }`}>
                 {day}
               </span>
@@ -138,7 +138,7 @@ export default function EventsCalendarView({ events }: { events: any[] }) {
       {/* Panel de eventos del día seleccionado */}
       {selectedDay !== null && (
         <div className="space-y-2 pt-1">
-          <p className="text-sm font-semibold text-gray-700">
+          <p className="text-sm font-semibold text-foreground/70">
             {selectedDay} de {MONTHS[month]}
           </p>
           {selectedEvents.length > 0 ? (
@@ -154,14 +154,14 @@ export default function EventsCalendarView({ events }: { events: any[] }) {
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${c.dot}`} />
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${c.text}`}>{ev.title}</p>
-                    <p className="text-xs text-gray-500">{ev.event_types?.name} · {time}</p>
+                    <p className="text-xs text-foreground/50">{ev.event_types?.name} · {time}</p>
                   </div>
-                  <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
+                  <ChevronRight size={14} className="text-foreground/40 flex-shrink-0" />
                 </Link>
               )
             })
           ) : (
-            <p className="text-sm text-gray-400 text-center py-2">Sin eventos</p>
+            <p className="text-sm text-foreground/40 text-center py-2">Sin eventos</p>
           )}
         </div>
       )}
@@ -171,7 +171,7 @@ export default function EventsCalendarView({ events }: { events: any[] }) {
         {Object.entries(TYPE_COLORS).map(([name, c]) => (
           <div key={name} className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-            <span className="text-xs text-gray-500">{name}</span>
+            <span className="text-xs text-foreground/50">{name}</span>
           </div>
         ))}
       </div>

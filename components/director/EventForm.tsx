@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { updateEvent } from '@/lib/actions/events'
 import type { EventType, SectionName } from '@/lib/supabase/types'
 import { SECTION_LABELS } from '@/lib/utils'
+import { AlertCircle } from 'lucide-react'
 
 const SECTIONS = Object.entries(SECTION_LABELS) as [SectionName, string][]
 
@@ -125,7 +126,7 @@ export default function EventForm({
           value={title}
           onChange={e => setTitle(e.target.value)}
           placeholder="Ej: Ensayo general — Teatro Municipal"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="input-base btn-focus"
         />
       </Field>
 
@@ -134,7 +135,7 @@ export default function EventForm({
           required
           value={eventTypeId}
           onChange={e => setEventTypeId(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="input-base btn-focus"
         >
           {eventTypes.map(et => (
             <option key={et.id} value={et.id}>{et.name}</option>
@@ -148,7 +149,7 @@ export default function EventForm({
           required
           value={startsAt}
           onChange={e => setStartsAt(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="input-base btn-focus"
         />
       </Field>
 
@@ -197,10 +198,10 @@ export default function EventForm({
               key={sec}
               type="button"
               onClick={() => toggleSection(sec)}
-              className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 btn-focus ${
                 targetSections.includes(sec)
-                  ? 'bg-violet-600 text-white border-violet-600'
-                  : 'bg-white text-gray-600 border-gray-300'
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-e1'
+                  : 'bg-white text-foreground/60 border-foreground/12 hover:border-brand-300 hover:text-brand-600'
               }`}
             >
               {label}
@@ -208,7 +209,7 @@ export default function EventForm({
           ))}
         </div>
         {targetSections.length === 0 && (
-          <p className="text-xs text-gray-400 mt-1">Aplica a todos los miembros</p>
+          <p className="text-xs text-foreground/40 mt-1.5">Aplica a todos los miembros</p>
         )}
       </Field>
 
@@ -218,20 +219,30 @@ export default function EventForm({
           onChange={e => setNotes(e.target.value)}
           rows={3}
           placeholder="Información adicional..."
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="input-base btn-focus resize-none"
         />
       </Field>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+          <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-violet-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
+        className="w-full bg-brand-500 hover:bg-brand-600 active:bg-brand-700 active:scale-[0.98] text-white py-3 rounded-xl font-semibold transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none shadow-e1 btn-focus"
       >
-        {loading
-          ? isEdit ? 'Guardando...' : 'Creando...'
-          : isEdit ? 'Guardar cambios' : 'Crear evento'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            {isEdit ? 'Guardando...' : 'Creando...'}
+          </span>
+        ) : (
+          isEdit ? 'Guardar cambios' : 'Crear evento'
+        )}
       </button>
     </form>
   )
@@ -254,7 +265,7 @@ function buildDates(startsAt: string, repeat: RepeatMode): string[] {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <label className="block text-sm font-medium text-foreground/65">{label}</label>
       {children}
     </div>
   )

@@ -16,11 +16,11 @@ export default function ErrorBoundary({
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center gap-4">
-      <h1 className="text-xl font-semibold text-gray-900">Algo salió mal</h1>
-      <p className="text-sm text-gray-500">Ocurrió un error inesperado. Ya quedó registrado.</p>
+      <h1 className="text-xl font-semibold text-foreground">Algo salió mal</h1>
+      <p className="text-sm text-foreground/50">Ocurrió un error inesperado. Ya quedó registrado.</p>
       <button
         onClick={reset}
-        className="px-4 py-2 rounded-xl bg-violet-700 text-white text-sm font-medium hover:bg-violet-800"
+        className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
       >
         Reintentar
       </button>

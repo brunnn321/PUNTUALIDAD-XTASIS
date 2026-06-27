@@ -42,8 +42,13 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Rutas públicas
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/auth')) {
+  // Rutas de API auth — dejar pasar siempre (el callback necesita procesar el code)
+  if (pathname.startsWith('/api/auth')) {
+    return supabaseResponse
+  }
+
+  // Login: si ya hay sesión, redirigir al home del rol
+  if (pathname.startsWith('/login')) {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')

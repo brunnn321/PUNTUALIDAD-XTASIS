@@ -19,9 +19,9 @@ export default async function NuevoEventoPage({
     : []
 
   return (
-    <div className="p-4 max-w-lg mx-auto">
-      <div className="pt-6 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo evento</h1>
+    <div className="max-w-lg mx-auto px-4 pt-8 pb-24">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">Nuevo evento</h1>
       </div>
       <EventForm eventTypes={eventTypes ?? []} initialSections={initialSections} />
     </div>

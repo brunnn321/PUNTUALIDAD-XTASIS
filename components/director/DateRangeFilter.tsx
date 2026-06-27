@@ -49,8 +49,8 @@ export default function DateRangeFilter({
             onClick={() => { setFrom(''); setTo(''); router.push(`${basePath}?periodo=${p.value}`) }}
             className={`flex-1 text-center text-sm py-2 rounded-xl border font-medium transition-colors ${
               !hasRange && periodo === p.value
-                ? 'bg-violet-600 text-white border-violet-600'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
+                ? 'bg-brand-500 text-white border-brand-500'
+                : 'bg-white text-foreground/60 border-foreground/12 hover:border-brand-300'
             }`}
           >
             {p.label}
@@ -59,26 +59,26 @@ export default function DateRangeFilter({
       </div>
 
       {/* Rango personalizado */}
-      <div className={`rounded-xl border p-3 space-y-2 transition-colors ${hasRange ? 'border-violet-400 bg-violet-50' : 'border-gray-200 bg-white'}`}>
-        <p className="text-xs font-medium text-gray-500">Rango personalizado</p>
+      <div className={`rounded-xl border p-3 space-y-2 transition-colors ${hasRange ? 'border-brand-400 bg-brand-50' : 'border-foreground/12 bg-white'}`}>
+        <p className="text-xs font-medium text-foreground/50">Rango personalizado</p>
         <div className="flex gap-2 items-center">
           <div className="flex-1 space-y-1">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wide">Desde</label>
+            <label className="text-[10px] text-foreground/40 uppercase tracking-wide">Desde</label>
             <input
               type="date"
               value={from}
               onChange={e => setFrom(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-foreground/12 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div className="flex-1 space-y-1">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wide">Hasta</label>
+            <label className="text-[10px] text-foreground/40 uppercase tracking-wide">Hasta</label>
             <input
               type="date"
               value={to}
               min={from}
               onChange={e => setTo(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-foreground/12 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -86,14 +86,14 @@ export default function DateRangeFilter({
           <button
             onClick={apply}
             disabled={!from || !to}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white text-sm font-medium py-2 rounded-lg transition-colors"
           >
             <Search size={13} /> Aplicar
           </button>
           {hasRange && (
             <button
               onClick={clear}
-              className="flex items-center gap-1 text-sm text-gray-500 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1 text-sm text-foreground/50 border border-foreground/12 px-3 py-2 rounded-lg hover:bg-foreground/4 transition-colors"
             >
               <X size={13} /> Limpiar
             </button>

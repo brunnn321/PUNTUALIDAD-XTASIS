@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Profile, SectionName } from '@/lib/supabase/types'
 import { SECTION_LABELS } from '@/lib/utils'
-import { Camera } from 'lucide-react'
+import { Camera, Check, Lock } from 'lucide-react'
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
   const [fullName, setFullName] = useState(profile.full_name)
@@ -40,7 +40,6 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
 
       if (!uploadError) {
         const { data } = supabase.storage.from('profile-photos').getPublicUrl(path)
-        // Cachebust para que el navegador no sirva la imagen antigua
         photoUrl = `${data.publicUrl}?t=${Date.now()}`
       }
     }
@@ -66,22 +65,22 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
 
   return (
     <div className="space-y-6">
-      {/* Avatar con opción de cambiar */}
+      {/* Avatar */}
       <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="relative flex-shrink-0 group"
+          className="relative flex-shrink-0 group btn-focus rounded-full"
           title="Cambiar foto de perfil"
         >
           {avatarSrc ? (
-            <img src={avatarSrc} alt="" className="w-16 h-16 rounded-full object-cover" />
+            <img src={avatarSrc} alt="" className="w-16 h-16 rounded-full object-cover shadow-e1" />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-2xl font-bold">
+            <div className="w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 text-2xl font-bold shadow-e1">
               {profile.full_name?.charAt(0)}
             </div>
           )}
-          <span className="absolute bottom-0 right-0 w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center shadow-sm group-hover:bg-violet-700 transition-colors">
+          <span className="absolute bottom-0 right-0 w-6 h-6 bg-brand-500 rounded-full flex items-center justify-center shadow-e1 group-hover:bg-brand-600 transition-colors">
             <Camera size={12} className="text-white" />
           </span>
         </button>
@@ -93,57 +92,74 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
           onChange={handlePhotoChange}
         />
         <div>
-          <p className="font-semibold text-gray-900">{profile.full_name}</p>
-          <p className="text-sm text-gray-400">
+          <p className="font-semibold text-foreground">{profile.full_name}</p>
+          <p className="text-sm text-foreground/40">
             {photoPreview ? 'Foto lista para guardar' : 'Toca la foto para cambiarla'}
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">Nombre completo</label>
+        <Field label="Nombre completo">
           {profile.name_edited ? (
-            <>
-              <p className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700">
-                {profile.full_name}
-              </p>
-              <p className="text-xs text-gray-400">Ya usaste tu cambio de nombre. Solo el director puede modificarlo de nuevo.</p>
-            </>
+            <div className="space-y-1">
+              <div className="input-base text-foreground/60 flex items-center justify-between">
+                <span>{profile.full_name}</span>
+                <Lock size={13} className="text-foreground/25 flex-shrink-0" />
+              </div>
+              <p className="text-xs text-foreground/40">Ya usaste tu cambio de nombre. Solo el director puede modificarlo.</p>
+            </div>
           ) : (
             <input
               type="text"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="input-base btn-focus"
             />
           )}
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">Sección</label>
-          <p className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700">
-            {section ? SECTION_LABELS[section as SectionName] : 'Sin sección asignada'}
-          </p>
-          <p className="text-xs text-gray-400">Solo el director puede cambiar tu sección.</p>
-        </div>
+        <Field label="Sección">
+          <div className="space-y-1">
+            <div className="input-base text-foreground/60 flex items-center justify-between">
+              <span>{section ? SECTION_LABELS[section as SectionName] : 'Sin sección asignada'}</span>
+              <Lock size={13} className="text-foreground/25 flex-shrink-0" />
+            </div>
+            <p className="text-xs text-foreground/40">Solo el director puede cambiar tu sección.</p>
+          </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">Instrumento o rol</label>
-          <p className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700">
-            {instrument || 'Sin instrumento asignado'}
-          </p>
-          <p className="text-xs text-gray-400">Solo el director puede cambiar tu instrumento.</p>
-        </div>
+        <Field label="Instrumento o rol">
+          <div className="space-y-1">
+            <div className="input-base text-foreground/60 flex items-center justify-between">
+              <span>{instrument || 'Sin instrumento asignado'}</span>
+              <Lock size={13} className="text-foreground/25 flex-shrink-0" />
+            </div>
+            <p className="text-xs text-foreground/40">Solo el director puede cambiar tu instrumento.</p>
+          </div>
+        </Field>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-violet-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 transition-colors"
+          className="w-full bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white py-3 rounded-xl font-semibold transition-all duration-150 shadow-e1 btn-focus disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
         >
-          {saved ? '¡Guardado!' : loading ? 'Guardando...' : 'Guardar cambios'}
+          {saved ? (
+            <><Check size={16} /> Guardado</>
+          ) : loading ? (
+            <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando…</>
+          ) : 'Guardar cambios'}
         </button>
       </form>
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-foreground/65">{label}</label>
+      {children}
     </div>
   )
 }

@@ -1,8 +1,46 @@
 @import "tailwindcss";
 
+/* ── Xtasis brand palette ─────────────────────────────────────────────────
+   Ámbar-dorado como primario — energía de escenario, ritmo latino
+   Neutrales tintados hacia hue 60 para cohesión cálida
+   ──────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand primary — ámbar/dorado */
+  --brand-50:  oklch(0.98 0.025 70);
+  --brand-100: oklch(0.94 0.07  68);
+  --brand-200: oklch(0.88 0.14  65);
+  --brand-300: oklch(0.80 0.19  62);
+  --brand-400: oklch(0.72 0.22  58);
+  --brand-500: oklch(0.65 0.24  55);   /* primario */
+  --brand-600: oklch(0.55 0.22  52);   /* hover */
+  --brand-700: oklch(0.44 0.18  50);   /* deep */
+  --brand-800: oklch(0.33 0.13  50);
+  --brand-900: oklch(0.24 0.09  50);
+
+  /* Neutral — tintados cálidos hacia hue 60 */
+  --neutral-50:  oklch(0.98 0.006 60);
+  --neutral-100: oklch(0.96 0.010 60);
+  --neutral-200: oklch(0.91 0.012 60);
+  --neutral-400: oklch(0.72 0.012 60);
+  --neutral-500: oklch(0.56 0.010 60);
+  --neutral-600: oklch(0.44 0.010 60);
+  --neutral-700: oklch(0.32 0.008 60);
+  --neutral-900: oklch(0.14 0.006 60);
+
+  /* Semantic */
+  --color-success: oklch(0.60 0.18 145);
+  --color-danger:  oklch(0.55 0.22 25);
+  --color-warning: oklch(0.72 0.18 65);
+
+  /* Surfaces */
+  --background: oklch(0.975 0.006 60);  /* blanco cálido muy sutil */
+  --surface:    oklch(1.00  0.000 60);  /* blanco puro para cards */
+  --foreground: oklch(0.15  0.008 50);  /* near-black cálido */
+
+  /* Elevation shadows — jerarquía MUI-style */
+  --shadow-1: 0 1px 2px oklch(0.14 0.008 50 / 0.08), 0 1px 6px oklch(0.14 0.008 50 / 0.05);
+  --shadow-2: 0 2px 4px oklch(0.14 0.008 50 / 0.10), 0 4px 12px oklch(0.14 0.008 50 / 0.08);
+  --shadow-3: 0 4px 8px oklch(0.14 0.008 50 / 0.12), 0 8px 24px oklch(0.14 0.008 50 / 0.10);
 }
 
 @theme inline {
@@ -10,17 +48,171 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Brand como utilidades Tailwind */
+  --color-brand-50:  var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: oklch(0.13 0.012 55);
+    --surface:    oklch(0.18 0.012 55);
+    --foreground: oklch(0.95 0.006 60);
+    --shadow-1: 0 1px 2px oklch(0 0 0 / 0.3), 0 1px 6px oklch(0 0 0 / 0.2);
+    --shadow-2: 0 2px 4px oklch(0 0 0 / 0.35), 0 4px 12px oklch(0 0 0 / 0.25);
+    --shadow-3: 0 4px 8px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.3);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ── Elevation utilities ───────────────────────────────────────────────── */
+.shadow-e1 { box-shadow: var(--shadow-1); }
+.shadow-e2 { box-shadow: var(--shadow-2); }
+.shadow-e3 { box-shadow: var(--shadow-3); }
+
+/* ── Input base system ─────────────────────────────────────────────────── */
+.input-base {
+  width: 100%;
+  border-radius: 0.625rem;
+  border: 1.5px solid oklch(0.14 0.006 50 / 0.15);
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input-base::placeholder {
+  color: oklch(0.14 0.006 50 / 0.30);
+}
+
+.input-base:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px oklch(0.65 0.24 55 / 0.15);
+}
+
+.input-base:disabled {
+  background: oklch(0.14 0.006 50 / 0.04);
+  color: oklch(0.14 0.006 50 / 0.35);
+  cursor: not-allowed;
+}
+
+/* ── Button focus ring ─────────────────────────────────────────────────── */
+.btn-focus:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+/* ── Easing curves ─────────────────────────────────────────────────────── */
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes success-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  65%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes check-draw {
+  from { stroke-dashoffset: 40; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ── Animation utilities ───────────────────────────────────────────────── */
+.animate-tab-in {
+  animation: tab-in 200ms var(--ease-out-quart) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms var(--ease-out-quart) both;
+}
+
+.animate-slide-up {
+  animation: slide-up 280ms var(--ease-out-quint) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 250ms var(--ease-out-expo) both;
+}
+
+.animate-success-pop {
+  animation: success-pop 420ms var(--ease-out-expo) both;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-in,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-success-pop {
+    animation: fade-in 100ms linear both;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

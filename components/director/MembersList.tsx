@@ -81,14 +81,14 @@ export default function MembersList({
         {mode === 'view' ? (
           <button
             onClick={() => setMode('select')}
-            className="flex items-center gap-1.5 text-sm text-violet-600 font-medium border border-violet-200 px-3 py-1.5 rounded-xl hover:bg-violet-50 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-brand-500 font-medium border border-brand-200 px-3 py-1.5 rounded-xl hover:bg-brand-50 transition-colors"
           >
             <CheckSquare size={14} /> Seleccionar
           </button>
         ) : (
           <button
             onClick={exitSelect}
-            className="flex items-center gap-1.5 text-sm text-gray-500 font-medium border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-foreground/50 font-medium border border-foreground/12 px-3 py-1.5 rounded-xl hover:bg-foreground/4 transition-colors"
           >
             <X size={14} /> Cancelar
           </button>
@@ -96,25 +96,25 @@ export default function MembersList({
       </div>
 
       {/* Lista activos */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Activos</h2>
-        <div className="space-y-2">
-          {active.map(member => (
-            <MemberRow
-              key={member.id}
-              member={member}
-              mode={mode}
-              selected={selected.has(member.id)}
-              onToggle={() => toggleSelect(member.id)}
-            />
-          ))}
-        </div>
+      <section className="space-y-3">
+        {active.map(member => (
+          <MemberRow
+            key={member.id}
+            member={member}
+            mode={mode}
+            selected={selected.has(member.id)}
+            onToggle={() => toggleSelect(member.id)}
+          />
+        ))}
       </section>
 
       {inactive.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Inactivos</h2>
-          <div className="space-y-2 opacity-60">
+        <section className="space-y-2">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-foreground/30">Inactivos</span>
+            <div className="flex-1 h-px bg-foreground/8" />
+          </div>
+          <div className="space-y-3 opacity-50">
             {inactive.map(member => (
               <MemberRow
                 key={member.id}
@@ -130,9 +130,9 @@ export default function MembersList({
 
       {/* Barra de acciones en modo selección */}
       {mode === 'select' && selected.size > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 px-4 z-40">
-          <div className="max-w-lg mx-auto bg-gray-900 text-white rounded-2xl p-4 shadow-2xl space-y-3">
-            <p className="text-sm font-medium text-center text-gray-300">
+        <div className="fixed bottom-20 left-0 right-0 px-4 z-40 animate-slide-up">
+          <div className="max-w-lg mx-auto bg-foreground text-white rounded-2xl p-4 shadow-2xl space-y-3">
+            <p className="text-sm font-medium text-center text-white/50">
               {selected.size} miembro{selected.size !== 1 ? 's' : ''} seleccionado{selected.size !== 1 ? 's' : ''}
             </p>
             {!confirmDelete ? (
@@ -170,7 +170,7 @@ export default function MembersList({
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-xs text-center text-gray-300">
+                <p className="text-xs text-center text-white/50">
                   ¿Eliminar {selectedMembers.filter(m => !m.active).length} miembro{selectedMembers.filter(m => !m.active).length !== 1 ? 's' : ''} inactivo{selectedMembers.filter(m => !m.active).length !== 1 ? 's' : ''} permanentemente?
                 </p>
                 <div className="flex gap-2">
@@ -183,7 +183,7 @@ export default function MembersList({
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
+                    className="flex-1 bg-white/10 hover:bg-white/20 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
                   >
                     No
                   </button>
@@ -209,24 +209,24 @@ function MemberRow({
   onToggle: () => void
 }) {
   const inner = (
-    <div className={`flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border transition-colors ${
-      selected ? 'border-violet-400 bg-violet-50' : 'border-gray-100'
+    <div className={`flex items-center gap-3 bg-white rounded-xl p-3 border transition-colors shadow-e1 ${
+      selected ? 'border-brand-400 bg-brand-50' : 'border-foreground/8'
     }`}>
       {mode === 'select' && (
-        <span className={`flex-shrink-0 ${selected ? 'text-violet-600' : 'text-gray-300'}`}>
+        <span className={`flex-shrink-0 ${selected ? 'text-brand-500' : 'text-foreground/20'}`}>
           {selected ? <CheckSquare size={20} /> : <Square size={20} />}
         </span>
       )}
       {member.photo_url ? (
         <img src={member.photo_url} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
       ) : (
-        <div className="w-11 h-11 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold flex-shrink-0">
+        <div className="w-11 h-11 rounded-full bg-brand-100 flex items-center justify-center text-brand-500 font-bold flex-shrink-0">
           {member.full_name?.charAt(0)}
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{member.full_name}</p>
-        <p className="text-xs text-gray-400">
+        <p className="font-medium text-foreground truncate">{member.full_name}</p>
+        <p className="text-xs text-foreground/40 mt-0.5">
           {member.section ? SECTION_LABELS[member.section as SectionName] : 'Sin sección'}
           {member.instrument ? ` · ${member.instrument}` : ''}
         </p>

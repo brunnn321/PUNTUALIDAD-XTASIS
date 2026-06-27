@@ -79,15 +79,18 @@ export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, au
 
   if (done) {
     return (
-      <div className="flex items-center justify-center gap-2 text-green-600 text-sm font-medium py-2">
-        <CheckCircle size={18} /> ¡Asistencia registrada!
+      <div className="flex items-center justify-center gap-2.5 py-3 animate-scale-in">
+        <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center animate-success-pop flex-shrink-0">
+          <CheckCircle size={14} className="text-white" />
+        </span>
+        <span className="text-sm font-semibold text-green-700">¡Asistencia registrada!</span>
       </div>
     )
   }
 
   if (!isOpen) {
     return (
-      <div className="flex items-center justify-center gap-2 text-gray-400 text-sm py-2">
+      <div className="flex items-center justify-center gap-2 text-foreground/40 text-sm py-2">
         <Clock size={16} /> Abre {fromNow(opensAt)}
       </div>
     )
@@ -97,11 +100,11 @@ export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, au
   if (galleryPhoto) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 border border-gray-200">
+        <div className="flex items-center gap-3 bg-foreground/4 rounded-xl p-3 border border-foreground/12">
           <img src={galleryPhoto} alt="Vista previa" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800">¿Usar esta foto?</p>
-            <p className="text-xs text-gray-400 mt-0.5">Se adjuntará a tu asistencia</p>
+            <p className="text-sm font-medium text-foreground">¿Usar esta foto?</p>
+            <p className="text-xs text-foreground/40 mt-0.5">Se adjuntará a tu asistencia</p>
           </div>
         </div>
         {errorMsg && (
@@ -112,16 +115,21 @@ export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, au
         <div className="flex gap-2">
           <button
             onClick={() => { setGalleryPhoto(null); setErrorMsg('') }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-foreground/12 text-foreground/60 text-sm font-medium hover:bg-foreground/4 active:scale-95 transition-all duration-150"
           >
             <RotateCcw size={15} /> Cambiar
           </button>
           <button
             onClick={confirmGallery}
             disabled={submitting}
-            className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold disabled:opacity-50"
+            className="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-95 active:bg-brand-700 text-white text-sm font-semibold transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
           >
-            {submitting ? 'Registrando...' : 'Confirmar'}
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Registrando…
+              </span>
+            ) : 'Confirmar'}
           </button>
         </div>
       </div>
@@ -133,13 +141,13 @@ export default function CheckInButton({ eventId, eventTitle, isOpen, opensAt, au
       <div className="flex gap-2" data-hydrated={mounted ? 'true' : undefined}>
         <button
           onClick={() => setShowCamera(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-700 active:scale-95 transition-all"
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white bg-brand-500 hover:bg-brand-600 active:scale-95 transition-all"
         >
           <Camera size={18} /> Cámara
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 active:scale-95 transition-all"
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-brand-500 bg-brand-50 border border-brand-200 hover:bg-brand-100 active:scale-95 transition-all"
         >
           <ImageIcon size={18} /> Galería
         </button>
