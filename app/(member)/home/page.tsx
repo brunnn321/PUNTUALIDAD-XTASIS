@@ -316,9 +316,6 @@ export default async function HomePage() {
         </section>
       )}
 
-      <LogoutButton />
-          </section>
-        )}
 
       </div>
       <AutoRefreshOnOpen opensAtList={upcomingOpensAt} />
